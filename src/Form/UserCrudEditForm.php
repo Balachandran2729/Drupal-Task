@@ -106,6 +106,56 @@ class UserCrudEditForm extends FormBase
     }
 
     /**
+ * Validate the edit form.
+ */
+public function validateForm(
+    array &$form,
+    FormStateInterface $form_state
+) {
+    $user_id = $form_state->getValue('user_id');
+
+    $username = trim($form_state->getValue('name'));
+    $email = trim($form_state->getValue('email'));
+    $password = $form_state->getValue('password');
+
+    // Username validation.
+    if (strlen($username) < 3) {
+        $form_state->setErrorByName(
+            'name',
+            $this->t('Username must be at least 3 characters long.')
+        );
+    }
+
+    // Check username belongs to another user.
+    $existing_user = user_load_by_name($username);
+
+    if ($existing_user && $existing_user->id() != $user_id) {
+        $form_state->setErrorByName(
+            'name',
+            $this->t('This username is already taken.')
+        );
+    }
+
+    // Check email belongs to another user.
+    $existing_email = user_load_by_mail($email);
+
+    if ($existing_email && $existing_email->id() != $user_id) {
+        $form_state->setErrorByName(
+            'email',
+            $this->t('This email address is already registered.')
+        );
+    }
+
+    // Password is optional during editing.
+    if (!empty($password) && strlen($password) < 8) {
+        $form_state->setErrorByName(
+            'password',
+            $this->t('Password must be at least 8 characters long.')
+        );
+    }
+}
+
+    /**
      * Submit the edit form.
      */
     public function submitForm(
