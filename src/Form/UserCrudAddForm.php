@@ -25,6 +25,7 @@ class UserCrudAddForm extends FormBase
             '#type' => 'textfield',
             '#title' => $this->t('Username'),
             '#required' => TRUE,
+            '#maxlength' => 60,
         ];
 
         $form['email'] = [
@@ -37,6 +38,9 @@ class UserCrudAddForm extends FormBase
             '#type' => 'password',
             '#title' => $this->t('Password'),
             '#required' => TRUE,
+            '#description' => $this->t(
+                'Password must be at least 8 characters long.'
+            ),
         ];
 
         $form['submit'] = [
@@ -48,12 +52,62 @@ class UserCrudAddForm extends FormBase
     }
 
     /**
+     * Validate the form.
+     */
+    public function validateForm(
+        array &$form,
+        FormStateInterface $form_state
+    ) {
+        $username = trim($form_state->getValue('name'));
+        $email = trim($form_state->getValue('email'));
+        $password = $form_state->getValue('password');
+
+        // Username validation.
+        if (strlen($username) < 3) {
+            $form_state->setErrorByName(
+                'name',
+                $this->t('Username must be at least 3 characters long.')
+            );
+        }
+
+        // Check whether username already exists.
+        $existing_user = user_load_by_name($username);
+
+        if ($existing_user) {
+            $form_state->setErrorByName(
+                'name',
+                $this->t('This username is already taken.')
+            );
+        }
+
+        // Check whether email already exists.
+        $existing_email = user_load_by_mail($email);
+
+        if ($existing_email) {
+            $form_state->setErrorByName(
+                'email',
+                $this->t('This email address is already registered.')
+            );
+        }
+
+        // Password validation.
+        if (strlen($password) < 8) {
+            $form_state->setErrorByName(
+                'password',
+                $this->t('Password must be at least 8 characters long.')
+            );
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
-    public function submitForm(array &$form, FormStateInterface $form_state)
-    {
-        $username = $form_state->getValue('name');
-        $email = $form_state->getValue('email');
+    public function submitForm(
+        array &$form,
+        FormStateInterface $form_state
+    ) {
+        $username = trim($form_state->getValue('name'));
+        $email = trim($form_state->getValue('email'));
         $password = $form_state->getValue('password');
 
         $user = User::create([
@@ -67,9 +121,12 @@ class UserCrudAddForm extends FormBase
         $user->save();
 
         $this->messenger()->addStatus(
-            $this->t('User @name has been created successfully.', [
-                '@name' => $username,
-            ])
+            $this->t(
+                'User @name has been created successfully.',
+                [
+                    '@name' => $username,
+                ]
+            )
         );
 
         $form_state->setRedirect('user_crud.list');
