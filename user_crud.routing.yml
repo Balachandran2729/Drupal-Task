@@ -21,12 +21,16 @@ user_crud.add:
 user_crud.edit:
   path: '/admin/user-crud/{user}/edit'
   defaults:
-    _controller: '\Drupal\user_crud\Controller\UserCrudController::edit'
+    _form: '\Drupal\user_crud\Form\UserCrudEditForm'
     _title: 'Edit User'
   requirements:
     _permission: 'manage user crud'
+    user: \d+
   options:
     _admin_route: TRUE
+    parameters:
+      user:
+        type: entity:user
 
 user_crud.delete:
   path: '/admin/user-crud/{user}/delete'
