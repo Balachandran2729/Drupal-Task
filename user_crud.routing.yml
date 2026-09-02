@@ -7,7 +7,7 @@ user_crud.list:
     _permission: 'manage user crud'
   options:
     _admin_route: TRUE
-
+    
 user_crud.add:
   path: '/admin/user-crud/add'
   defaults:
