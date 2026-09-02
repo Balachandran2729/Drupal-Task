@@ -35,9 +35,13 @@ user_crud.edit:
 user_crud.delete:
   path: '/admin/user-crud/{user}/delete'
   defaults:
-    _controller: '\Drupal\user_crud\Controller\UserCrudController::delete'
+    _form: '\Drupal\user_crud\Form\UserCrudDeleteForm'
     _title: 'Delete User'
   requirements:
     _permission: 'manage user crud'
+    user: \d+
   options:
     _admin_route: TRUE
+    parameters:
+      user:
+        type: entity:user
