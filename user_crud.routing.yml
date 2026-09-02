@@ -11,7 +11,7 @@ user_crud.list:
 user_crud.add:
   path: '/admin/user-crud/add'
   defaults:
-    _controller: '\Drupal\user_crud\Controller\UserCrudController::add'
+    _form: '\Drupal\user_crud\Form\UserCrudAddForm'
     _title: 'Add User'
   requirements:
     _permission: 'manage user crud'
