@@ -1,0 +1,5 @@
+name: User CRUD
+type: module
+description: 'Simple user CRUD management module.'
+package: Custom
+core_version_requirement: ^10 || ^11

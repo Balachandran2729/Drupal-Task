@@ -1,0 +1,39 @@
+user_crud.list:
+  path: '/admin/user-crud'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudController::list'
+    _title: 'User CRUD'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.add:
+  path: '/admin/user-crud/add'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudController::add'
+    _title: 'Add User'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.edit:
+  path: '/admin/user-crud/{user}/edit'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudController::edit'
+    _title: 'Edit User'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.delete:
+  path: '/admin/user-crud/{user}/delete'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudController::delete'
+    _title: 'Delete User'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE

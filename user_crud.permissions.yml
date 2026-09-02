@@ -1,0 +1,4 @@
+manage user crud:
+  title: 'Manage User CRUD'
+  description: 'Create, view, edit and delete users using the custom User CRUD module.'
+  restrict access: true
