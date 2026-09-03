@@ -97,6 +97,30 @@ class UserCrudAddForm extends FormBase
                 $this->t('Password must be at least 8 characters long.')
             );
         }
+
+        // At least one uppercase letter.
+        if (!preg_match('/[A-Z]/', $password)) {
+            $form_state->setErrorByName(
+                'password',
+                $this->t('Password must contain at least one uppercase letter.')
+            );
+        }
+
+        // At least one number.
+        if (!preg_match('/[0-9]/', $password)) {
+            $form_state->setErrorByName(
+                'password',
+                $this->t('Password must contain at least one number.')
+            );
+        }
+
+        // At least one special character.
+        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+            $form_state->setErrorByName(
+                'password',
+                $this->t('Password must contain at least one special character.')
+            );
+        }
     }
 
     /**

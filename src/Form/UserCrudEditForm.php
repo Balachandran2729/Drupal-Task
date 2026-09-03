@@ -147,13 +147,18 @@ public function validateForm(
     }
 
     // Password is optional during editing.
-    if (!empty($password) && strlen($password) < 8) {
-        $form_state->setErrorByName(
-            'password',
-            $this->t('Password must be at least 8 characters long.')
-        );
+        if (!empty($password) && !preg_match(
+            '/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/',
+            $password
+        )) {
+            $form_state->setErrorByName(
+                'password',
+                $this->t(
+                    'Password must be at least 8 characters long and contain at least one uppercase letter, one number, and one special character.'
+                )
+            );
+        }
     }
-}
 
     /**
      * Submit the edit form.
