@@ -8,64 +8,45 @@ use Drupal\Core\Link;
 class UserCrudController extends ControllerBase
 {
     public function list()
-    {
-        $storage = $this->entityTypeManager()->getStorage('user');
+{
+    $storage = $this->entityTypeManager()->getStorage('user');
+    $users = $storage->loadMultiple();
 
-        $users = $storage->loadMultiple();
+    $rows = [];
 
-        $rows = [];
-
-        foreach ($users as $user) {
-
-            // Skip anonymous user.
-            if ($user->id() == 0) {
-                continue;
-            }
-
-            $edit_link = Link::createFromRoute(
-                'Edit',
-                'user_crud.edit',
-                [
-                    'user' => $user->id(),
-                ]
-            )->toRenderable();
-
-            $delete_link = Link::createFromRoute(
-                'Delete',
-                'user_crud.delete',
-                [
-                    'user' => $user->id(),
-                ]
-            )->toRenderable();
-
-            $rows[] = [
-                $user->id(),
-                $user->getAccountName(),
-                $user->getEmail(),
-                $user->isActive() ? 'Active' : 'Blocked',
-                [
-                    'data' => $edit_link,
-                ],
-                [
-                    'data' => $delete_link,
-                ],
-            ];
+    foreach ($users as $user) {
+        if ($user->id() == 0) {
+            continue;
         }
 
-        return [
-            '#type' => 'table',
-            '#header' => [
-                'ID',
-                'Username',
-                'Email',
-                'Status',
-                'Edit',
-                'Delete',
-            ],
-            '#rows' => $rows,
-            '#empty' => 'No users found.',
+        $edit_link = Link::createFromRoute('Edit', 'user_crud.edit', ['user' => $user->id()])->toRenderable();
+        $delete_link = Link::createFromRoute('Delete', 'user_crud.delete', ['user' => $user->id()])->toRenderable();
+
+        $rows[] = [
+            $user->id(),
+            $user->getAccountName(),
+            $user->getEmail(),
+            $user->isActive() ? 'Active' : 'Blocked',
+            ['data' => $edit_link],
+            ['data' => $delete_link],
         ];
     }
+
+    $build['heading'] = [
+        '#markup' => '<h2>User List</h2>',
+    ];
+
+    $build['add_link'] = Link::createFromRoute('Add User', 'user_crud.add')->toRenderable();
+
+    $build['table'] = [
+        '#type' => 'table',
+        '#header' => ['ID', 'Username', 'Email', 'Status', 'Edit', 'Delete'],
+        '#rows' => $rows,
+        '#empty' => 'No users found.',
+    ];
+
+    return $build;
+}
 
     public function add()
     {

@@ -54,10 +54,7 @@ class UserCrudAddForm extends FormBase
     /**
      * Validate the form.
      */
-    public function validateForm(
-        array &$form,
-        FormStateInterface $form_state
-    ) {
+    public function validateForm(array &$form,FormStateInterface $form_state) {
         $username = trim($form_state->getValue('name'));
         $email = trim($form_state->getValue('email'));
         $password = $form_state->getValue('password');
