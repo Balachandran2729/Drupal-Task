@@ -64,6 +64,7 @@ class UserCrudAddForm extends FormBase
         $username = trim($form_state->getValue('name'));
         $email = trim($form_state->getValue('email'));
         $password = $form_state->getValue('password');
+        $phone = trim($form_state->getValue('phone'));
 
         // Username validation.
         if (strlen($username) < 3) {
@@ -124,6 +125,13 @@ class UserCrudAddForm extends FormBase
                 $this->t('Password must contain at least one special character.')
             );
         }
+
+        if (!preg_match('/^\+65[0-9]{8}$/', $phone)) {
+            $form_state->setErrorByName(
+                'phone',
+                $this->t('Phone number must start with +65 and contain 8 digits after it.')
+            );
+        }
     }
 
     /**
@@ -150,9 +158,11 @@ class UserCrudAddForm extends FormBase
 
         $this->messenger()->addStatus(
             $this->t(
-                'User @name has been created successfully.',
+                'User @name , @email (ID: @id) has been created successfully.',
                 [
                     '@name' => $username,
+                    '@email' => $email,
+                    '@id' => $user->id(),
                 ]
             )
         );

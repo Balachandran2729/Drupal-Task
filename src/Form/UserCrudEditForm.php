@@ -75,6 +75,13 @@ class UserCrudEditForm extends FormBase
             '#required' => TRUE,
         ];
 
+        $form['phone'] = [
+            '#type' => 'textfield',
+            '#title' => $this->t('Phone Number'),
+            '#default_value' => $user->get('field_phone_number')->value,
+            '#required' => TRUE,
+        ];
+
         $form['status'] = [
             '#type' => 'select',
             '#title' => $this->t('Status'),
@@ -117,6 +124,7 @@ public function validateForm(
     $username = trim($form_state->getValue('name'));
     $email = trim($form_state->getValue('email'));
     $password = $form_state->getValue('password');
+    $phone = trim($form_state->getValue('phone'));
 
     // Username validation.
     if (strlen($username) < 3) {
@@ -158,7 +166,17 @@ public function validateForm(
                 )
             );
         }
+
+        // Phone number validation.
+    if (!preg_match('/^\+65[0-9]{8}$/', $phone)) {
+        $form_state->setErrorByName(
+            'phone',
+            $this->t(
+                'Phone number must start with +65 and contain 8 digits after it.'
+            )
+        );
     }
+}
 
     /**
      * Submit the edit form.
@@ -195,6 +213,13 @@ public function validateForm(
         $user->set(
             'status',
             $form_state->getValue('status')
+        );
+
+        // Update phone number.
+
+        $user->set(
+            'field_phone_number',
+            $form_state->getValue('phone')
         );
 
         // Update password only if entered.
