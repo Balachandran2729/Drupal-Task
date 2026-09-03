@@ -55,3 +55,13 @@ user_crud.hello:
     _permission: 'manage user crud'
   options:
     _admin_route: TRUE
+
+user_crud.restAPIread:
+  path: '/api/user-crud/rest-api/read'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudController::restApiRead'
+    _title: 'Read Users (REST API)'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE

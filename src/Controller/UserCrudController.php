@@ -4,6 +4,7 @@ namespace Drupal\user_crud\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class UserCrudController extends ControllerBase
 {
@@ -48,6 +49,30 @@ class UserCrudController extends ControllerBase
 
     return $build;
 }
+
+    public function restApiRead() {
+        
+    $storage = $this->entityTypeManager()->getStorage('user');
+    $users = $storage->loadMultiple();
+    $data=[];
+
+    foreach($users as $user) {
+        if($user->id() ==0) {
+            continue;
+        }
+        $data[] = [
+            'id' => $user->id(),
+            'username' => $user->getAccountName(),
+            'email' => $user->getEmail(),
+            'phone_number' => $user->get('field_phone_number')->value,
+            'status' => $user->isActive() ? 'Active' : 'Blocked',
+        ];
+
+    }
+
+    return new JsonResponse($data);
+
+    }
 
     public function add()
     {
