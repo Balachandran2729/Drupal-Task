@@ -87,4 +87,10 @@ class UserCrudController extends ControllerBase
             '#markup' => 'Delete User',
         ];
     }
+
+    public function hello() {
+        return [
+            '#markup' => 'Hello Chandru',
+        ];
+    }
 }

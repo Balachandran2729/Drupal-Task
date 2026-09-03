@@ -45,3 +45,13 @@ user_crud.delete:
     parameters:
       user:
         type: entity:user
+
+user_crud.hello:
+  path: '/admin/user-crud/hello'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudController::hello'
+    _title: 'Hello User CRUD'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
