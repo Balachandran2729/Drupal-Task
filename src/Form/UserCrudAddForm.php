@@ -43,6 +43,12 @@ class UserCrudAddForm extends FormBase
             ),
         ];
 
+        $form['phone'] = [
+            '#type' => 'tel',
+            '#title' => $this->t('Phone Number'),
+            '#required' => TRUE,
+        ];
+
         $form['submit'] = [
             '#type' => 'submit',
             '#value' => $this->t('Create User'),
@@ -130,13 +136,14 @@ class UserCrudAddForm extends FormBase
         $username = trim($form_state->getValue('name'));
         $email = trim($form_state->getValue('email'));
         $password = $form_state->getValue('password');
+        $phone = trim($form_state->getValue('phone'));
 
         $user = User::create([
             'name' => $username,
             'mail' => $email,
             'status' => 1,
         ]);
-
+        $user->set('field_phone_number', $phone);
         $user->setPassword($password);
 
         $user->save();

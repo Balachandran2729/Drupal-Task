@@ -26,6 +26,7 @@ class UserCrudController extends ControllerBase
             $user->id(),
             $user->getAccountName(),
             $user->getEmail(),
+            $user->get('field_phone_number')->value,
             $user->isActive() ? 'Active' : 'Blocked',
             ['data' => $edit_link],
             ['data' => $delete_link],
@@ -40,7 +41,7 @@ class UserCrudController extends ControllerBase
 
     $build['table'] = [
         '#type' => 'table',
-        '#header' => ['ID', 'Username', 'Email', 'Status', 'Edit', 'Delete'],
+        '#header' => ['ID', 'Username', 'Email', 'Phone Number', 'Status', 'Edit', 'Delete'],
         '#rows' => $rows,
         '#empty' => 'No users found.',
     ];
