@@ -85,22 +85,25 @@ class UserCrudRestAPIController extends ControllerBase {
     }
 
 
-    public function restAPIdelete($user)
+    public function restAPIdelete($user) {
 
-        {
-            $user = User::load($user);
+        $user = User::load($user);
 
-            if ($user) {
-                $user->delete();
+        $token_service = new UserCrudVerifyTokens();
+        $user_service = new UserCrudService();
 
-                return new JsonResponse([
-                    'message' => 'User deleted successfully.',
-                ], 200);
-            }
+        $token = $token_service->generateToken();
 
+        $token_verify = $token_service->verifyToken($token);
+
+        if (!$token_verify) {
             return new JsonResponse([
-                'message' => 'User not found.',
-            ], 404);
+                'error' => 'Invalid token.',
+            ], 401);
+        }
+
+        return $user_service->restAPIdeleteUser($user);
+
     }
 
     

@@ -26,5 +26,19 @@ class UserCrudService
         ], 201);
     }
 
-    
+    public function restAPIdeleteUser($user) {
+        if ($user) {
+            $user->delete();
+
+            return new JsonResponse([
+                'message' => 'User deleted successfully.',
+            ], 200);
+        }
+
+        return new JsonResponse([
+            'message' => 'User not found.',
+        ], 404);
+    }
+
+
 }
