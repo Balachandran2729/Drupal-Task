@@ -7,6 +7,9 @@ use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
+use Drupal\user_crud\Service\UserCrudVerifyTokens;
+use Drupal\user_crud\Service\UserCrudService;
+
 
 class UserCrudRestAPIController extends ControllerBase {
 
@@ -43,7 +46,9 @@ class UserCrudRestAPIController extends ControllerBase {
 
     }
 
+
     public function restAPIdelete($user)
+
         {
             $user = User::load($user);
 
@@ -58,9 +63,9 @@ class UserCrudRestAPIController extends ControllerBase {
             return new JsonResponse([
                 'message' => 'User not found.',
             ], 404);
-        }
+    }
 
-
+    
     public function restAPIeditPut($user,Request $request) {
 
         $user = User::load($user);
@@ -99,36 +104,38 @@ class UserCrudRestAPIController extends ControllerBase {
 
     }
 
+    
+
     public function restAPIcreate(Request $request)
     {
         $data = json_decode($request->getContent(), true);
+
+        $token_service = new UserCrudVerifyTokens();
+        $user_service = new UserCrudService();
+
+        $token = $token_service->generateToken();
 
         $username = trim($data['name'] ?? '');
         $email = trim($data['email'] ?? '');
         $password = $data['password'] ?? '';
         $phone_number = trim($data['phone_number'] ?? '');
 
+        $token_verify = $token_service->verifyToken($token);
+
+        if (!$token_verify) {
+            return new JsonResponse([
+                'error' => 'Invalid token.',
+            ], 401);
+        }
+
         // Validation.
-    if ($username === '' || $email === '' || $password === '') {
-        return new JsonResponse([
-            'error' => 'Name, email and password are required.',
-        ], 400);
-    }
+        if ($username === '' || $email === '' || $password === '') {
+            return new JsonResponse([
+                'error' => 'Name, email and password are required.',
+            ], 400);
+        }
 
-        // Create user.
-        $user = $this->entityTypeManager()->getStorage('user')->create([
-            'name' => $username,
-            'mail' => $email,
-            'field_phone_number' => $phone_number,
-            'status' => 1,
-        ]);
-        $user->setPassword($password);
-        $user->save();
-
-        return new JsonResponse([
-            'message' => 'User created successfully.',
-            'user_id' => $user->id(),
-        ], 201);
+        return $user_service->restAPIcreateUser( $username, $email, $password,$phone_number );
 
     }
     
