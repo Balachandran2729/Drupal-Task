@@ -40,5 +40,32 @@ class UserCrudService
         ], 404);
     }
 
+    public function restAPIupdateUserPut($user, $request) {
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['name'])) {
+            $user->setUsername($data['name']);
+        }
+        if (isset($data['email'])) {
+            $user->setEmail($data['email']);
+        }
+        if (isset($data['password'])) {
+            $user->setPassword($data['password']);
+        }
+
+        if (isset($data['status'])) {
+            $user->set('status', $data['status']);
+        }
+
+        if (isset($data['phone'])) {
+            $user->set('field_phone_number', $data['phone']);
+        }
+
+        $user->save();
+
+        return new JsonResponse(['message' => 'User updated successfully'], 201);
+    }
+
 
 }

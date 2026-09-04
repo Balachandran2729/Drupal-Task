@@ -54,34 +54,23 @@ class UserCrudRestAPIController extends ControllerBase {
     public function restAPIedit($user,Request $request) {
 
         $user = User::load($user);
+
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
 
-        $data = json_decode($request->getContent(), true);
+        $token_service = new UserCrudVerifyTokens();
+        $user_service = new UserCrudService();
 
-        if (isset($data['name'])) {
-            $user->setUsername($data['name']);
-        }
-        if (isset($data['email'])) {
-            $user->setEmail($data['email']);
-        }
-        if (isset($data['password'])) {
-            $user->setPassword($data['password']);
+        $token = $token_service->generateToken();
+
+        $token_verify = $token_service->verifyToken($token);
+        if (!$token_verify) {
+            return new JsonResponse(['error' => 'Invalid token.',], 401);
         }
 
-        if (isset($data['status'])) {
-            $user->set('status', $data['status']);
-        }
-
-        if (isset($data['phone'])) {
-            $user->set('field_phone_number', $data['phone']);
-        }
-
-        $user->save();
-
-        return new JsonResponse(['message' => 'User updated successfully'], 201);
-
+        return $user_service->restAPIupdateUserPut($user, $request);
+        
     }
 
 
