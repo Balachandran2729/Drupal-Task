@@ -17,6 +17,14 @@ class UserCrudRestAPIController extends ControllerBase {
     {
         $token_service = new UserCrudVerifyTokens();
 
+        $token_verify = $token_service->verifyToken($token);
+
+        if (!$token_verify) {
+            return new JsonResponse([
+                'error' => 'Invalid token.',
+            ], 401);
+        }
+
         $storage = $this->entityTypeManager()->getStorage('user');
 
         $users = $storage->loadMultiple();
@@ -39,14 +47,6 @@ class UserCrudRestAPIController extends ControllerBase {
 
         }
 
-        $token_verify = $token_service->verifyToken($token);
-
-        if (!$token_verify) {
-            return new JsonResponse([
-                'error' => 'Invalid token.',
-            ], 401);
-        }
-
         return new JsonResponse($data);
 
     }
@@ -54,7 +54,7 @@ class UserCrudRestAPIController extends ControllerBase {
     public function restAPIedit($user,Request $request) {
 
         $user = User::load($user);
-
+        $data = json_decode($request->getContent(), true);
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
@@ -69,7 +69,7 @@ class UserCrudRestAPIController extends ControllerBase {
             return new JsonResponse(['error' => 'Invalid token.',], 401);
         }
 
-        return $user_service->restAPIupdateUserPatch($user, $request);
+        return $user_service->restAPIupdateUserPatch($user, $data);
         
     }
 
@@ -77,6 +77,12 @@ class UserCrudRestAPIController extends ControllerBase {
     public function restAPIdelete($user) {
 
         $user = User::load($user);
+
+        if (!$user) {
+            return new JsonResponse([
+                'error' => 'User not found.',
+            ], 404);
+        }
 
         $token_service = new UserCrudVerifyTokens();
         $user_service = new UserCrudService();
@@ -138,7 +144,7 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 400);
         }
 
-        return $user_service->restAPIupdateUserPatch($user, $request);
+        return $user_service->restAPIupdateUserPut($user, $data);
        
     }
 

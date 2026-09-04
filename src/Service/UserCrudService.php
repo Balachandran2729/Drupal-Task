@@ -34,15 +34,9 @@ class UserCrudService
                 'message' => 'User deleted successfully.',
             ], 200);
         }
-
-        return new JsonResponse([
-            'message' => 'User not found.',
-        ], 404);
     }
 
-    public function restAPIupdateUserPatch($user, $request) {
-
-        $data = json_decode($request->getContent(), true);
+    public function restAPIupdateUserPatch($user, $data) {
 
         if (isset($data['name'])) {
             $user->setUsername($data['name']);
@@ -64,21 +58,21 @@ class UserCrudService
 
         $user->save();
 
-        return new JsonResponse(['message' => 'User updated successfully'], 201);
+        return new JsonResponse(['message' => 'User updated successfully'], 200);
     }
 
-    public function restAPIupdateUserPut($user, $request) {
-        
-        $data = json_decode($request->getContent(), true);
-
+    public function restAPIupdateUserPut($user, $data)
+    {
         $user->setUsername($data['name']);
         $user->setEmail($data['email']);
         $user->set('field_phone_number', $data['phone']);
-        $user->set('status', isset($data['status']) ? $data['status'] : 1);
+        $user->set('status', $data['status'] ?? 1);
+
         $user->save();
 
-        return new JsonResponse(['message' => 'User updated successfully'], 201);
-
+        return new JsonResponse([
+            'message' => 'User updated successfully'
+        ], 200);
     }
 
 
