@@ -55,3 +55,23 @@ user_crud.hello:
     _permission: 'manage user crud'
   options:
     _admin_route: TRUE
+
+user_crud.restAPIedit:
+  path: '/api/user-crud/rest-api/edit/{user}'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudRestAPIController::restAPIedit'
+  methods: [PATCH]
+  requirements:
+    _access: 'TRUE'
+    user: \d+
+  options:
+    _admin_route: FALSE
+
+user_crud.restAPIeditPut:
+  path: '/api/user-crud/rest-api/edit/{user}'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudRestAPIController::restAPIeditPut'
+  methods: [PUT]
+  requirements:
+    _permission: 'access content'
+    user: '\d+'
