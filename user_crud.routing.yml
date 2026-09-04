@@ -99,7 +99,7 @@ user_crud.restAPIcreate:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
-
+     
 user_crud.restAPIread:
   path: '/api/user-crud/rest-api/read'
   defaults:
