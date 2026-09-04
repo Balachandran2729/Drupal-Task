@@ -60,80 +60,52 @@ class UserCrudAddForm extends FormBase
     /**
      * Validate the form.
      */
-    public function validateForm(array &$form,FormStateInterface $form_state) {
-        $username = trim($form_state->getValue('name'));
-        $email = trim($form_state->getValue('email'));
-        $password = $form_state->getValue('password');
-        $phone = trim($form_state->getValue('phone'));
+   public function validateForm(array &$form, FormStateInterface $form_state) {
+    $username = trim($form_state->getValue('name'));
+    $email = trim($form_state->getValue('email'));
+    $password = $form_state->getValue('password');
+    $phone = trim($form_state->getValue('phone'));
 
-        // Username validation.
-        if (strlen($username) < 3) {
-            $form_state->setErrorByName(
-                'name',
-                $this->t('Username must be at least 3 characters long.')
-            );
-        }
-
-        // Check whether username already exists.
-        $existing_user = user_load_by_name($username);
-
-        if ($existing_user) {
-            $form_state->setErrorByName(
-                'name',
-                $this->t('This username is already taken.')
-            );
-        }
-
-        // Check whether email already exists.
-        $existing_email = user_load_by_mail($email);
-
-        if ($existing_email) {
-            $form_state->setErrorByName(
-                'email',
-                $this->t('This email address is already registered.')
-            );
-        }
-
-        // Password validation.
-        if (strlen($password) < 8) {
-            $form_state->setErrorByName(
-                'password',
-                $this->t('Password must be at least 8 characters long.')
-            );
-        }
-
-        // At least one uppercase letter.
-        if (!preg_match('/[A-Z]/', $password)) {
-            $form_state->setErrorByName(
-                'password',
-                $this->t('Password must contain at least one uppercase letter.')
-            );
-        }
-
-        // At least one number.
-        if (!preg_match('/[0-9]/', $password)) {
-            $form_state->setErrorByName(
-                'password',
-                $this->t('Password must contain at least one number.')
-            );
-        }
-
-        // At least one special character.
-        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
-            $form_state->setErrorByName(
-                'password',
-                $this->t('Password must contain at least one special character.')
-            );
-        }
-
-        if (!preg_match('/^\+65[0-9]{8}$/', $phone)) {
-            $form_state->setErrorByName(
-                'phone',
-                $this->t('Phone number must start with +65 and contain 8 digits after it.')
-            );
-        }
+    // Username validation.
+    if (strlen($username) < 3) {
+        $form_state->setErrorByName(
+            'name',
+            $this->t('Username must be at least 3 characters long.')
+        );
     }
 
+    // Check whether username already exists.
+    if (user_load_by_name($username)) {
+        $form_state->setErrorByName(
+            'name',
+            $this->t('This username is already taken.')
+        );
+    }
+
+    // Check whether email already exists.
+    if (user_load_by_mail($email)) {
+        $form_state->setErrorByName(
+            'email',
+            $this->t('This email address is already registered.')
+        );
+    }
+
+    // Password validation.
+    if (!preg_match('/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/', $password)) {
+        $form_state->setErrorByName(
+            'password',
+            $this->t('Password must be at least 8 characters and contain one uppercase letter, one number, and one special character.')
+        );
+    }
+
+    // Phone validation.
+    if (!preg_match('/^\+65[0-9]{8}$/', $phone)) {
+        $form_state->setErrorByName(
+            'phone',
+            $this->t('Phone number must start with +65 and contain 8 digits.')
+        );
+    }
+}
     /**
      * {@inheritdoc}
      */
