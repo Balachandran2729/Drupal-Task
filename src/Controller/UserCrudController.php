@@ -50,30 +50,6 @@ class UserCrudController extends ControllerBase
     return $build;
 }
 
-    public function restApiRead() {
-        
-    $storage = $this->entityTypeManager()->getStorage('user');
-    $users = $storage->loadMultiple();
-    $data=[];
-
-    foreach($users as $user) {
-        if($user->id() ==0) {
-            continue;
-        }
-        $data[] = [
-            'id' => $user->id(),
-            'username' => $user->getAccountName(),
-            'email' => $user->getEmail(),
-            'phone_number' => $user->get('field_phone_number')->value,
-            'status' => $user->isActive() ? 'Active' : 'Blocked',
-        ];
-
-    }
-
-    return new JsonResponse($data);
-
-    }
-
     public function add()
     {
         return [

@@ -13,6 +13,44 @@ use Drupal\user_crud\Service\UserCrudService;
 
 class UserCrudRestAPIController extends ControllerBase {
 
+    public function restApiRead() 
+    {
+        $token_service = new UserCrudVerifyTokens();
+
+        $storage = $this->entityTypeManager()->getStorage('user');
+
+        $users = $storage->loadMultiple();
+
+        $data=[];
+
+        $token = $token_service->generateToken();
+
+        foreach($users as $user) {
+            if($user->id() ==0) {
+                continue;
+            }
+            $data[] = [
+                'id' => $user->id(),
+                'username' => $user->getAccountName(),
+                'email' => $user->getEmail(),
+                'phone_number' => $user->get('field_phone_number')->value,
+                'status' => $user->isActive() ? 'Active' : 'Blocked',
+            ];
+
+        }
+
+        $token_verify = $token_service->verifyToken($token);
+
+        if (!$token_verify) {
+            return new JsonResponse([
+                'error' => 'Invalid token.',
+            ], 401);
+        }
+
+        return new JsonResponse($data);
+
+    }
+
     public function restAPIedit($user,Request $request) {
 
         $user = User::load($user);

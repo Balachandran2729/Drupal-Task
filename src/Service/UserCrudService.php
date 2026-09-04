@@ -25,4 +25,6 @@ class UserCrudService
             'user_id' => $user->id(),
         ], 201);
     }
+
+    
 }

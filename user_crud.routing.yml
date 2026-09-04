@@ -103,7 +103,7 @@ user_crud.restAPIcreate:
 user_crud.restAPIread:
   path: '/api/user-crud/rest-api/read'
   defaults:
-    _controller: '\Drupal\user_crud\Controller\UserCrudController::restApiRead'
+    _controller: '\Drupal\user_crud\Controller\UserCrudRestAPIController::restApiRead'
     _title: 'Read Users'
   requirements:
     _access: 'TRUE'
