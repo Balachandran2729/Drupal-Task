@@ -55,3 +55,13 @@ user_crud.hello:
     _permission: 'manage user crud'
   options:
     _admin_route: TRUE
+
+user_crud.restAPIcreate:
+  path: '/api/user-crud/rest-api/create'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudRestAPIController::restAPIcreate'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
