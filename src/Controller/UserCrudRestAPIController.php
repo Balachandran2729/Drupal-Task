@@ -69,7 +69,7 @@ class UserCrudRestAPIController extends ControllerBase {
             return new JsonResponse(['error' => 'Invalid token.',], 401);
         }
 
-        return $user_service->restAPIupdateUserPut($user, $request);
+        return $user_service->restAPIupdateUserPatch($user, $request);
         
     }
 
@@ -100,10 +100,24 @@ class UserCrudRestAPIController extends ControllerBase {
 
         $user = User::load($user);
 
+        $token_service = new UserCrudVerifyTokens();
+        $user_service = new UserCrudService();
+
+        $token = $token_service->generateToken();
+
+
         if (!$user) {
             return new JsonResponse([
                 'error' => 'User not found',
             ], 404);
+        }
+
+        $token_verify = $token_service->verifyToken($token);
+
+        if (!$token_verify) {
+            return new JsonResponse([
+                'error' => 'Invalid token.',
+            ], 401);
         }
 
         $data = json_decode($request->getContent(), TRUE);
@@ -124,14 +138,8 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 400);
         }
 
-        $user->setUsername($data['name']);
-        $user->setEmail($data['email']);
-        $user->set('field_phone_number', $data['phone']);
-        $user->set('status', isset($data['status']) ? $data['status'] : 1);
-        $user->save();
-
-        return new JsonResponse(['message' => 'User updated successfully'], 201);
-
+        return $user_service->restAPIupdateUserPatch($user, $request);
+       
     }
 
     

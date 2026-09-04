@@ -40,7 +40,7 @@ class UserCrudService
         ], 404);
     }
 
-    public function restAPIupdateUserPut($user, $request) {
+    public function restAPIupdateUserPatch($user, $request) {
 
         $data = json_decode($request->getContent(), true);
 
@@ -65,6 +65,20 @@ class UserCrudService
         $user->save();
 
         return new JsonResponse(['message' => 'User updated successfully'], 201);
+    }
+
+    public function restAPIupdateUserPut($user, $request) {
+        
+        $data = json_decode($request->getContent(), true);
+
+        $user->setUsername($data['name']);
+        $user->setEmail($data['email']);
+        $user->set('field_phone_number', $data['phone']);
+        $user->set('status', isset($data['status']) ? $data['status'] : 1);
+        $user->save();
+
+        return new JsonResponse(['message' => 'User updated successfully'], 201);
+
     }
 
 
