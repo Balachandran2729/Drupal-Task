@@ -55,3 +55,15 @@ user_crud.hello:
     _permission: 'manage user crud'
   options:
     _admin_route: TRUE
+
+user_crud.restAPIdelete:
+  path: '/api/user-crud/rest-api/delete/{user}'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudRestAPIController::restAPIdelete'
+    _title: 'REST API Delete User'
+  methods: [DELETE]
+  requirements:
+    _access: 'TRUE'
+    user: \d+
+  options:
+    _admin_route: false
