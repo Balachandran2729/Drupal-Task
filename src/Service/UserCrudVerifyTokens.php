@@ -8,7 +8,7 @@ class UserCrudVerifyTokens {
 
         $static_key = 'jv3784gfd454b5rrhyufhrbr874';
 
-        $payload = time();
+        $payload = time();    
 
         $signature = hash_hmac('sha256', $payload, $static_key);
 
