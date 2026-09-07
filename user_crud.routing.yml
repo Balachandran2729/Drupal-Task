@@ -109,3 +109,23 @@ user_crud.restAPIread:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
+
+user_crud.refreshToken:
+  path: '/api/user-crud/refresh-token'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudjwtController::refreshToken'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+user_crud.userLogin:
+  path: '/api/user-crud/user-login'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudRestAPIController::userLogin'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE

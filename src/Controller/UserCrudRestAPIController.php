@@ -29,6 +29,40 @@ class UserCrudRestAPIController extends ControllerBase {
         );
     }
 
+    public function userLogin(Request $request) {
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!is_array($data)) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON body.',
+            ], 400);
+        }
+
+        $token = $this->tokenService->generateToken();
+        
+        $token_verify = $this->tokenService->verifyToken($token);
+
+        if (!$token_verify) {
+            return new JsonResponse([
+                'error' => 'Invalid token , Check The Token.',
+            ], 401);
+        }
+
+
+
+        $username = trim($data['name'] ?? '');
+        $password = $data['password'] ?? '';
+
+        if ($username === '' || $password === '') {
+            return new JsonResponse([
+                'error' => 'Name and password are required.',
+            ], 400);
+        }
+
+        return $this->userCrudService->userLogin($username, $password);
+    }
+
     public function restApiRead() 
     {        
         $token = $this->tokenService->generateToken();

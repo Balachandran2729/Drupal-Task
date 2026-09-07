@@ -15,6 +15,27 @@ class UserCrudService
         $this->jwtAuthService = $jwtAuthService;
     }
 
+    public function userLogin($username, $password) {
+        
+        $user = user_load_by_name($username);
+
+        if (!$user || !$user->isActive() || !\Drupal::service('password')->check($password, $user->getPassword())) {
+            return new JsonResponse([
+                'error' => 'Invalid username or password.',
+            ], 401);
+        }
+
+        $access_token = $this->jwtAuthService->generateAccessToken($user->id(), $user->getAccountName());
+        $refresh_token = $this->jwtAuthService->generateRefreshToken($user->id(), $user->getAccountName());
+
+        return new JsonResponse([
+            'message' => 'Login successful.',
+            'access_token' => $access_token,
+            'refresh_token' => $refresh_token,
+        ], 200);
+
+    }
+
     public function restAPIcreateUser( $username, $email, $password, $phone_number ) {
 
         $user = User::create([
