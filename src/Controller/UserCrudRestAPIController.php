@@ -3,6 +3,7 @@
 namespace Drupal\user_crud\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,15 +14,30 @@ use Drupal\user_crud\Service\UserCrudService;
 
 class UserCrudRestAPIController extends ControllerBase {
 
-    public function restApiRead() 
-    {
-        $token_service = new UserCrudVerifyTokens();
+    private UserCrudService $userCrudService;
+     private UserCrudVerifyTokens $tokenService;
 
-        $token_verify = $token_service->verifyToken($token);
+    public function __construct(UserCrudService $userCrudService, UserCrudVerifyTokens $tokenService) {
+        $this->userCrudService = $userCrudService;
+        $this->tokenService = $tokenService;
+    }
+
+    public static function create(ContainerInterface $container) {
+        return new static(
+            $container->get('user_crud.service'),
+            $container->get('user_crud.verify_tokens'),
+        );
+    }
+
+    public function restApiRead() 
+    {        
+        $token = $this->tokenService->generateToken();
+        
+        $token_verify = $this->tokenService->verifyToken($token);
 
         if (!$token_verify) {
             return new JsonResponse([
-                'error' => 'Invalid token.',
+                'error' => 'Invalid token , Check The Token.',
             ], 401);
         }
 
@@ -30,8 +46,6 @@ class UserCrudRestAPIController extends ControllerBase {
         $users = $storage->loadMultiple();
 
         $data=[];
-
-        $token = $token_service->generateToken();
 
         foreach($users as $user) {
             if($user->id() ==0) {
@@ -54,22 +68,20 @@ class UserCrudRestAPIController extends ControllerBase {
     public function restAPIedit($user,Request $request) {
 
         $user = User::load($user);
+        
         $data = json_decode($request->getContent(), true);
         if (!$user) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
 
-        $token_service = new UserCrudVerifyTokens();
-        $user_service = new UserCrudService();
+        $token = $this->tokenService->generateToken();
 
-        $token = $token_service->generateToken();
-
-        $token_verify = $token_service->verifyToken($token);
+        $token_verify = $this->tokenService->verifyToken($token);
         if (!$token_verify) {
             return new JsonResponse(['error' => 'Invalid token.',], 401);
         }
 
-        return $user_service->restAPIupdateUserPatch($user, $data);
+        return $this->userCrudService->restAPIupdateUserPatch($user, $data);
         
     }
 
@@ -84,12 +96,9 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 404);
         }
 
-        $token_service = new UserCrudVerifyTokens();
-        $user_service = new UserCrudService();
+        $token = $this->tokenService->generateToken();
 
-        $token = $token_service->generateToken();
-
-        $token_verify = $token_service->verifyToken($token);
+        $token_verify = $this->tokenService->verifyToken($token);
 
         if (!$token_verify) {
             return new JsonResponse([
@@ -97,7 +106,7 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 401);
         }
 
-        return $user_service->restAPIdeleteUser($user);
+        return $this->userCrudService->restAPIdeleteUser($user);
 
     }
 
@@ -106,10 +115,7 @@ class UserCrudRestAPIController extends ControllerBase {
 
         $user = User::load($user);
 
-        $token_service = new UserCrudVerifyTokens();
-        $user_service = new UserCrudService();
-
-        $token = $token_service->generateToken();
+        $token = $this->tokenService->generateToken();
 
 
         if (!$user) {
@@ -118,7 +124,7 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 404);
         }
 
-        $token_verify = $token_service->verifyToken($token);
+        $token_verify = $this->tokenService->verifyToken($token);
 
         if (!$token_verify) {
             return new JsonResponse([
@@ -144,7 +150,7 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 400);
         }
 
-        return $user_service->restAPIupdateUserPut($user, $data);
+        return $this->userCrudService->restAPIupdateUserPut($user, $data);
        
     }
 
@@ -154,23 +160,26 @@ class UserCrudRestAPIController extends ControllerBase {
     {
         $data = json_decode($request->getContent(), true);
 
-        $token_service = new UserCrudVerifyTokens();
-        $user_service = new UserCrudService();
+        $token = $this->tokenService->generateToken();
 
-        $token = $token_service->generateToken();
-
-        $username = trim($data['name'] ?? '');
-        $email = trim($data['email'] ?? '');
-        $password = $data['password'] ?? '';
-        $phone_number = trim($data['phone_number'] ?? '');
-
-        $token_verify = $token_service->verifyToken($token);
+        $token_verify = $this->tokenService->verifyToken($token);
 
         if (!$token_verify) {
             return new JsonResponse([
                 'error' => 'Invalid token.',
             ], 401);
         }
+
+        if (!is_array($data)) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON body.',
+            ], 400);
+        }
+
+        $username = trim($data['name'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $password = $data['password'] ?? '';
+        $phone_number = trim($data['phone_number'] ?? '');
 
         // Validation.
         if ($username === '' || $email === '' || $password === '') {
@@ -179,7 +188,7 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 400);
         }
 
-        return $user_service->restAPIcreateUser( $username, $email, $password,$phone_number );
+        return $this->userCrudService->restAPIcreateUser( $username, $email, $password,$phone_number );
 
     }
     

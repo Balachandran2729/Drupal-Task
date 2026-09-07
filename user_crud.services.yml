@@ -1,4 +1,14 @@
 services:
+  user_crud.jwt_auth:
+    class: Drupal\user_crud\Service\JwtAuthService
+
+  user_crud.service:
+    class: Drupal\user_crud\Service\UserCrudService
+    arguments: ['@user_crud.jwt_auth']
+
+  user_crud.verify_tokens:
+    class: Drupal\user_crud\Service\UserCrudVerifyTokens
+
   user_crud.login_subscriber:
     class: Drupal\user_crud\EventSubscriber\UserCrudLoginSubscriber
     tags:

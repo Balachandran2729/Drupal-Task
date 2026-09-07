@@ -4,9 +4,17 @@ namespace Drupal\user_crud\Service;
 
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Drupal\user_crud\Service\JwtAuthService;
 
 class UserCrudService
 {
+    private JwtAuthService $jwtAuthService;
+
+    public function __construct(JwtAuthService $jwtAuthService)
+    {
+        $this->jwtAuthService = $jwtAuthService;
+    }
+
     public function restAPIcreateUser( $username, $email, $password, $phone_number ) {
 
         $user = User::create([
@@ -20,9 +28,15 @@ class UserCrudService
 
         $user->save();
 
+        $access_token = $this->jwtAuthService->generateAccessToken($user->id(), $user->getAccountName());
+        
+        $refresh_token = $this->jwtAuthService->generateRefreshToken($user->id(), $user->getAccountName());
+
         return new JsonResponse([
             'message' => 'User created successfully.',
             'user_id' => $user->id(),
+            'access_token' => $access_token,
+            'refresh_token' => $refresh_token,
         ], 201);
     }
 
