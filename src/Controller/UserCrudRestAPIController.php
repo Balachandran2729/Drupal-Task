@@ -121,6 +121,22 @@ class UserCrudRestAPIController extends ControllerBase {
 
     public function restAPIedit($user,Request $request) {
 
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
         $user = User::load($user);
         
         $data = json_decode($request->getContent(), true);
@@ -182,6 +198,22 @@ class UserCrudRestAPIController extends ControllerBase {
 
     
     public function restAPIeditPut($user,Request $request) {
+
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
 
         $user = User::load($user);
 
