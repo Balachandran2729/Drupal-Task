@@ -67,8 +67,24 @@ class UserCrudRestAPIController extends ControllerBase {
         return $this->userCrudService->userLogin($username, $password);
     }
 
-    public function restApiRead() 
-    {        
+    public function restApiRead(Request $request) 
+    {      
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
         $token = $this->tokenService->generateToken();
         
         $token_verify = $this->tokenService->verifyToken($token);
