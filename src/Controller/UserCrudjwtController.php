@@ -29,12 +29,19 @@ class UserCrudjwtController extends ControllerBase {
 
         $payload = $this->jwtAuthService->decodeToken($refreshToken);
 
-        if (!$payload || ($payload['type'] ?? '') !== 'refresh') {
+        if (
+            !$payload ||
+            ($payload['type'] ?? '') !== 'refresh' ||
+            !isset($payload['uid'], $payload['username'])
+        ) {
         return new JsonResponse(['error' => 'Invalid or expired refresh token'], 401);
         }
 
         return new JsonResponse([
-        'access_token' => $this->jwtAuthService->generateAccessToken((int)$payload['uid']),
+        'access_token' => $this->jwtAuthService->generateAccessToken(
+            (int) $payload['uid'],
+            (string) $payload['username']
+        ),
         ]);
     }
 
