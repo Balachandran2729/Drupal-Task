@@ -159,3 +159,25 @@ user_crud.getCartAppData:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
+
+user_crud.updateCartAppData:
+  path: '/api/user-crud/update-cart-apps-data/{id}'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::updateCartAppData'
+  methods: [PATCH]
+  requirements:
+    _access: 'TRUE'
+    id: '\d+'
+  options:
+    _admin_route: FALSE
+
+user_crud.deleteCartAppData:
+  path: '/api/user-crud/delete-cart-apps-data/{id}'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::deleteCartAppData'
+  methods: [DELETE]
+  requirements:
+    _access: 'TRUE'
+    id: '\d+'
+  options:
+    _admin_route: FALSE

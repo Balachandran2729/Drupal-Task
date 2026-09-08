@@ -138,5 +138,73 @@ class UserCrudAPPsController extends ControllerBase {
 
     }
 
+    public function updateCartAppData($id, Request $request) {
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
+        $requestData = json_decode($request->getContent(), TRUE) ?: [];
+        $count = $requestData['count'] ?? NULL;
+
+        if (!is_int($count) || $count < 1) {
+            return new JsonResponse([
+                'error' => 'Count must be a positive integer.',
+            ], 400);
+        }
+
+        $cartItem = $this->userCrudAPPsService->updateCartAppData($id, $count);
+
+        if (!$cartItem) {
+            return new JsonResponse([
+                'error' => 'Cart product not found.',
+            ], 404);
+        }
+
+        return new JsonResponse([
+            'message' => 'Cart product updated successfully.',
+            'item' => $cartItem,
+        ]);
+    }
+
+    public function deleteCartAppData($id, Request $request) {
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
+        if (!$this->userCrudAPPsService->deleteCartAppData($id)) {
+            return new JsonResponse([
+                'error' => 'Cart product not found.',
+            ], 404);
+        }
+
+        return new JsonResponse([
+            'message' => 'Cart product deleted successfully.',
+        ]);
+    }
+
 
 }

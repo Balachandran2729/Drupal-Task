@@ -27,6 +27,7 @@ class UserCrudAPPsService {
             'id' => $id,
             'title' => $title,
             'image' => $image,
+            'count' => 1,
         ];
 
         $updated = FALSE;
@@ -48,7 +49,45 @@ class UserCrudAPPsService {
     }
 
     public function getCartAppData() {
-        return \Drupal::state()->get('user_crud.cart', []);
+        $cart = \Drupal::state()->get('user_crud.cart', []);
+
+        foreach ($cart as $index => $item) {
+            $cart[$index]['count'] = $item['count'] ?? 1;
+        }
+
+        \Drupal::state()->set('user_crud.cart', array_values($cart));
+
+        return array_values($cart);
+    }
+
+    public function updateCartAppData($id, $count) {
+        $cart = \Drupal::state()->get('user_crud.cart', []);
+
+        foreach ($cart as $index => $item) {
+            if ((string) ($item['id'] ?? '') === (string) $id) {
+                $cart[$index]['count'] = $count;
+                \Drupal::state()->set('user_crud.cart', array_values($cart));
+
+                return $cart[$index];
+            }
+        }
+
+        return NULL;
+    }
+
+    public function deleteCartAppData($id) {
+        $cart = \Drupal::state()->get('user_crud.cart', []);
+
+        foreach ($cart as $index => $item) {
+            if ((string) ($item['id'] ?? '') === (string) $id) {
+                unset($cart[$index]);
+                \Drupal::state()->set('user_crud.cart', array_values($cart));
+
+                return TRUE;
+            }
+        }
+
+        return FALSE;
     }
 
 
