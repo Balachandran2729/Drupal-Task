@@ -100,7 +100,7 @@ class UserCrudAPPsController extends ControllerBase {
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $id = $requestData['id'] ?? '';
         $title = $requestData['title'] ?? '';
-        $image = $requestData['image'] ?? '';
+        $image = $requestData['image'] ?? '';   
 
         if (empty($id) || empty($title) || empty($image)) {
             return new JsonResponse([
