@@ -53,7 +53,6 @@ class UserCrudAPPsController extends ControllerBase {
         }
 
         $token = $this->tokenService->generateToken();
-        
         $token_verify = $this->tokenService->verifyToken($token);
 
         if (!$token_verify) {
@@ -69,6 +68,74 @@ class UserCrudAPPsController extends ControllerBase {
         $appData = $this->userCrudAPPsService->getAppData($limit, $skip);
 
         return new JsonResponse($appData);
+    }
+
+    public function createCartAppData (Request $request) {
+
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
+        $token = $this->tokenService->generateToken();
+        $token_verify = $this->tokenService->verifyToken($token);
+
+        if (!$token_verify) {
+            return new JsonResponse([
+                'error' => 'Invalid token , Check The Token.',
+            ], 401);
+        }
+
+        $requestData = json_decode($request->getContent(), TRUE) ?: [];
+        $id = $requestData['id'] ?? '';
+        $title = $requestData['title'] ?? '';
+        $image = $requestData['image'] ?? '';
+
+        if (empty($id) || empty($title) || empty($image)) {
+            return new JsonResponse([
+                'error' => 'Missing required fields: id, title, or image.',
+            ], 400);
+        }
+
+        $cartItem = $this->userCrudAPPsService->createCartAppData($id, $title, $image);
+
+        return new JsonResponse([
+            'message' => 'Product added to cart successfully.',
+        ], 201);
+    }
+
+    public function getCartAppData (Request $request) {
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
+        return new JsonResponse([
+            'cart' => $this->userCrudAPPsService->getCartAppData(),
+        ]);
+
     }
 
 

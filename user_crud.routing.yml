@@ -139,3 +139,23 @@ user_crud.getAppData:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
+
+user_crud.createCartAppData:
+  path: '/api/user-crud/create-cart-apps-data'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::createCartAppData'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+user_crud.getCartAppData:
+  path: '/api/user-crud/get-cart-apps-data'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::getCartAppData'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE

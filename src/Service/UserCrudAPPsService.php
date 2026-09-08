@@ -21,4 +21,35 @@ class UserCrudAPPsService {
         return json_decode($response->getBody()->getContents(), TRUE);
     }
 
+    public function createCartAppData($id, $title, $image) {
+        $cart = \Drupal::state()->get('user_crud.cart', []);
+        $cartItem = [
+            'id' => $id,
+            'title' => $title,
+            'image' => $image,
+        ];
+
+        $updated = FALSE;
+        foreach ($cart as $index => $item) {
+            if ((string) ($item['id'] ?? '') === (string) $id) {
+                $cart[$index] = $cartItem;
+                $updated = TRUE;
+                break;
+            }
+        }
+
+        if (!$updated) {
+            $cart[] = $cartItem;
+        }
+
+        \Drupal::state()->set('user_crud.cart', array_values($cart));
+
+        return $cartItem;
+    }
+
+    public function getCartAppData() {
+        return \Drupal::state()->get('user_crud.cart', []);
+    }
+
+
 }
