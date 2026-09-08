@@ -129,3 +129,13 @@ user_crud.userLogin:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
+
+user_crud.getAppData:
+  path: '/api/user-crud/get-apps-data'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::getAppData'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE

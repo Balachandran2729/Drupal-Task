@@ -13,3 +13,7 @@ services:
     class: Drupal\user_crud\EventSubscriber\UserCrudLoginSubscriber
     tags:
       - { name: event_subscriber }
+
+  user_crud.apps_service:
+    class: Drupal\user_crud\Service\UserCrudAppsService
+    arguments: ['@http_client']
