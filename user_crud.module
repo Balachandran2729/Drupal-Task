@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * Implements hook_cron().
+ */
+function user_crud_cron() {
+
+  $time = date('Y-m-d H:i:s');
+
+  \Drupal::logger('user_crud')->notice(
+    'My Cron is running at: @time',
+    [
+      '@time' => $time,
+    ]
+  );
+
+}
