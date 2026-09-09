@@ -181,3 +181,25 @@ user_crud.deleteCartAppData:
     id: '\d+'
   options:
     _admin_route: FALSE
+
+user_crud.registerToken:
+  path: '/api/notifications/register-token'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::registerToken'
+    _title: 'Register Device Token'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+user_crud.getRegisteredTokens:
+  path: '/api/notifications/get-registered-tokens'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::getRegisteredTokens'
+    _title: 'Get Registered Device Tokens'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE

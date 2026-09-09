@@ -57,6 +57,48 @@ class UserCrudAPPsService {
         return $cartItem;
     }
 
+    public function registerDeviceToken($name, $id, $device, $token) {
+        $storedTokens = \Drupal::state()->get('user_crud.notification_tokens', []);
+
+        $registeredToken = [
+            'name' => trim((string) $name),
+            'id' => (string) $id,
+            'device' => trim((string) $device),
+            'token' => trim((string) $token),
+            'registered_at' => time(),
+        ];
+
+        $updated = FALSE;
+        foreach ($storedTokens as $index => $item) {
+            if ((string) ($item['token'] ?? '') === (string) $registeredToken['token']) {
+                $storedTokens[$index] = $registeredToken;
+                $updated = TRUE;
+                break;
+            }
+        }
+
+        if (!$updated) {
+            $storedTokens[] = $registeredToken;
+        }
+
+        \Drupal::state()->set('user_crud.notification_tokens', array_values($storedTokens));
+
+        return $registeredToken;
+    }
+
+    public function getRegisteredTokens() {
+        $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
+
+        foreach ($tokens as $index => $item) {
+            $tokens[$index]['name'] = trim((string) ($item['name'] ?? ''));
+            $tokens[$index]['id'] = (string) ($item['id'] ?? '');
+            $tokens[$index]['device'] = trim((string) ($item['device'] ?? ''));
+            $tokens[$index]['token'] = trim((string) ($item['token'] ?? ''));
+        }
+
+        return array_values($tokens);
+    }
+
     public function getCartAppData() {
         $cart = \Drupal::state()->get('user_crud.cart', []);
 

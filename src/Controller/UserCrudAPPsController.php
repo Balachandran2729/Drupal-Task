@@ -149,6 +149,91 @@ class UserCrudAPPsController extends ControllerBase {
         ], 201);
     }
 
+    public function registerToken(Request $request) {
+        \Drupal::logger('user_crud')->info('registerToken called.');
+
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Authorization header is missing or not in Bearer format.');
+            return new JsonResponse([
+                'error' => 'Authorization header must use Bearer token format.',
+            ], 401);
+        }
+
+        \Drupal::logger('user_crud')->info('registerToken: Authorization header found.');
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Invalid or expired access token.');
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
+        \Drupal::logger('user_crud')->info('registerToken: Access token is valid.');
+
+        $token = $this->tokenService->generateToken();
+        $token_verify = $this->tokenService->verifyToken($token);
+
+        if (!$token_verify) {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Token verification failed.');
+            return new JsonResponse([
+                'error' => 'Invalid token , Check The Token.',
+            ], 401);
+        }
+
+        \Drupal::logger('user_crud')->info('registerToken: Token verification successful.');
+
+        $requestData = json_decode($request->getContent(), TRUE);
+
+        if (!is_array($requestData)) {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Invalid JSON body.');
+            return new JsonResponse([
+                'error' => 'Invalid JSON body.',
+            ], 400);
+        }
+
+        $name = trim((string) ($requestData['name'] ?? ''));
+        $id = $requestData['id'] ?? '';
+        $device = trim((string) ($requestData['device'] ?? ''));
+        $tokenValue = trim((string) ($requestData['token'] ?? ''));
+
+        \Drupal::logger('user_crud')->info('registerToken: Request data received: @request', [
+            '@request' => json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        ]);
+
+        if ($name === '' || $id === '' || $device === '' || $tokenValue === '') {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Missing required fields.');
+            return new JsonResponse([
+                'error' => 'Name, id, device, and token are required.',
+            ], 400);
+        }
+
+        $registeredToken = $this->userCrudAPPsService->registerDeviceToken($name, $id, $device, $tokenValue);
+
+        \Drupal::logger('user_crud')->info('registerToken completed successfully.');
+
+        return new JsonResponse([
+            'message' => 'Device token registered successfully.',
+            'data' => $registeredToken,
+        ], 201);
+    }
+
+    public function getRegisteredTokens() {
+        \Drupal::logger('user_crud')->info('getRegisteredTokens called.');
+
+        $registeredTokens = $this->userCrudAPPsService->getRegisteredTokens();
+
+        \Drupal::logger('user_crud')->info('getRegisteredTokens completed successfully.');
+
+        return new JsonResponse([
+            'data' => $registeredTokens,
+            'count' => count($registeredTokens),
+        ]);
+    }
+
     public function getCartAppData (Request $request) {
         \Drupal::logger('user_crud')->info('getCartAppData called.');
 
