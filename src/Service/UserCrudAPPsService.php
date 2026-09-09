@@ -11,14 +11,23 @@ class UserCrudAPPsService {
     }
 
     public function getAppData($limit, $skip) {
-        $response = $this->httpClient->get('https://dummyjson.com/products', [
-            'query' => [
-                'limit' => $limit,
-                'skip' => $skip,
-            ],
-        ]);
+        try {
+            $response = $this->httpClient->get('https://dummyjson.com/products', [
+                'query' => [
+                    'limit' => $limit,
+                    'skip' => $skip,
+                ],
+            ]);
 
-        return json_decode($response->getBody()->getContents(), TRUE);
+            return json_decode($response->getBody()->getContents(), TRUE);
+        }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('getAppData failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     public function createCartAppData($id, $title, $image) {
