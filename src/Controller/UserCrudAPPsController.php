@@ -121,12 +121,12 @@ class UserCrudAPPsController extends ControllerBase {
         $count = $requestData['count'] ?? NULL;
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        \Drupal::logger('user_crud')->info('updateCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
-
-        if (!is_int($count) || $count < 1) {
-            \Drupal::logger('user_crud')->warning('updateCartAppData failed: Count value is missing or invalid.');
+        \Drupal::logger('user_crud')->info('updateCartAppData: Request data received: ');
+        
+        if (!is_int($count) || $count < 1 || empty($id) || !is_int($id) ) {
+            \Drupal::logger('user_crud')->error('updateCartAppData failed: Count value or ID is missing or invalid.');
             return new JsonResponse([
-                'error' => 'Count must be a positive integer.',
+                'error' => 'Count must be a positive integer. or ID Missing',
             ], 400);
         }
 
@@ -135,7 +135,7 @@ class UserCrudAPPsController extends ControllerBase {
         $cartItem = $this->userCrudAPPsService->updateCartAppData($id, $count);
 
         if (!$cartItem) {
-            \Drupal::logger('user_crud')->warning('updateCartAppData failed: Cart product not found for id @id.');
+            \Drupal::logger('user_crud')->error('updateCartAppData failed: Cart product not found for id @id.');
             return new JsonResponse([
                 'error' => 'Cart product not found.',
             ], 404);

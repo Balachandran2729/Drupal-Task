@@ -44,7 +44,7 @@ class UserCrudVerifyTokens {
         $authorization = $request->headers->get('Authorization', '');
 
         if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning($context . ' failed: Authorization header is missing or not in Bearer format.');
+            \Drupal::logger('user_crud')->error($context . ' failed: Authorization header is missing or not in Bearer format.');
             return new JsonResponse([
                 'error' => 'Authorization header must use Bearer token format.',
             ], 401);
@@ -55,7 +55,7 @@ class UserCrudVerifyTokens {
         $jwtPayload = $jwtAuthService->decodeToken($matches[1]);
 
         if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning($context . ' failed: Invalid or expired access token.');
+            \Drupal::logger('user_crud')->error($context . ' failed: Invalid or expired access token.');
             return new JsonResponse([
                 'error' => 'Invalid or expired access token.',
             ], 401);
@@ -67,7 +67,7 @@ class UserCrudVerifyTokens {
         $token_verify = $this->verifyToken($token);
 
         if (!$token_verify) {
-            \Drupal::logger('user_crud')->warning($context . ' failed: Token verification failed.');
+            \Drupal::logger('user_crud')->error($context . ' failed: Token verification failed.');
             return new JsonResponse([
                 'error' => 'Invalid token , Check The Token.',
             ], 401);
