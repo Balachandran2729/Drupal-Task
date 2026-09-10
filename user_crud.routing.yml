@@ -203,3 +203,34 @@ user_crud.getRegisteredTokens:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
+
+user_crud.notifications:
+  path: '/admin/notifications'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::list'
+    _title: 'Notifications'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.notifications.send:
+  path: '/admin/notifications/send'
+  defaults:
+    _form: '\Drupal\user_crud\Form\UserCrudSendNotificationForm'
+    _title: 'Send Notification'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.api_send_notification:
+  path: '/api/notifications/send'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::sendNotification'
+    _title: 'Send Notification'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE

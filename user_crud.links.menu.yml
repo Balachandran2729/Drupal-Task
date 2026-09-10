@@ -1,0 +1,6 @@
+user_crud.notifications:
+  title: 'Notifications'
+  description: 'View notification history.'
+  route_name: user_crud.notifications
+  parent: system.admin
+  weight: 100

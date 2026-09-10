@@ -17,3 +17,7 @@ services:
   user_crud.apps_service:
     class: Drupal\user_crud\Service\UserCrudAppsService
     arguments: ['@http_client']
+
+  user_crud.notification_service:
+    class: Drupal\user_crud\Service\UserCrudNotificationService
+    arguments: ['@http_client']
