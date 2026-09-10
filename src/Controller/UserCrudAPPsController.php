@@ -38,39 +38,10 @@ class UserCrudAPPsController extends ControllerBase {
 
         \Drupal::logger('user_crud')->info('getAppData called.');
 
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning('getAppData failed: Authorization header is missing or not in Bearer format.');
-            return new JsonResponse([
-                'error' => 'Authorization header must use Bearer token format.',
-            ], 401);
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'getAppData');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
         }
-
-        \Drupal::logger('user_crud')->info('getAppData: Authorization header found.');
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning('getAppData failed: Invalid or expired access token.');
-            return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('getAppData: Access token is valid.');
-
-        $token = $this->tokenService->generateToken();
-        $token_verify = $this->tokenService->verifyToken($token);
-
-        if (!$token_verify) {
-            \Drupal::logger('user_crud')->warning('getAppData failed: Token verification failed.');
-            return new JsonResponse([
-                'error' => 'Invalid token , Check The Token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('getAppData: Token verification successful.');
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $limit = $requestData['limit'] ?? 10;
@@ -85,56 +56,27 @@ class UserCrudAPPsController extends ControllerBase {
         return new JsonResponse($appData);
     }
 
+    //Cart Section
+
     public function createCartAppData (Request $request) {
 
         \Drupal::logger('user_crud')->info('createCartAppData called.');
 
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning('createCartAppData failed: Authorization header is missing or not in Bearer format.');
-            return new JsonResponse([
-                'error' => 'Authorization header must use Bearer token format.',
-            ], 401);
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'createCartAppData');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
         }
-
-        \Drupal::logger('user_crud')->info('createCartAppData: Authorization header found.');
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning('createCartAppData failed: Invalid or expired access token.');
-            return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('createCartAppData: Access token is valid.');
-
-        $token = $this->tokenService->generateToken();
-        $token_verify = $this->tokenService->verifyToken($token);
-
-        if (!$token_verify) {
-            \Drupal::logger('user_crud')->warning('createCartAppData failed: Token verification failed.');
-            return new JsonResponse([
-                'error' => 'Invalid token , Check The Token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('createCartAppData: Token verification successful.');
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
-        $id = $requestData['id'] ?? '';
-        $title = $requestData['title'] ?? '';
-        $image = $requestData['image'] ?? '';   
+        $id = $requestData['id'] ?? '';  
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
 
-        if (empty($id) || empty($title) || empty($image)) {
+        if (empty($id) ) {
             \Drupal::logger('user_crud')->warning('createCartAppData failed: Missing required fields.');
             return new JsonResponse([
-                'error' => 'Missing required fields: id, title, or image.',
+                'error' => 'Oops ! , Somthing Went Wrong , Please try after sometime.',
             ], 400);
         }
 
@@ -149,115 +91,13 @@ class UserCrudAPPsController extends ControllerBase {
         ], 201);
     }
 
-    public function registerToken(Request $request) {
-        \Drupal::logger('user_crud')->info('registerToken called.');
-
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning('registerToken failed: Authorization header is missing or not in Bearer format.');
-            return new JsonResponse([
-                'error' => 'Authorization header must use Bearer token format.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('registerToken: Authorization header found.');
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning('registerToken failed: Invalid or expired access token.');
-            return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('registerToken: Access token is valid.');
-
-        $token = $this->tokenService->generateToken();
-        $token_verify = $this->tokenService->verifyToken($token);
-
-        if (!$token_verify) {
-            \Drupal::logger('user_crud')->warning('registerToken failed: Token verification failed.');
-            return new JsonResponse([
-                'error' => 'Invalid token , Check The Token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('registerToken: Token verification successful.');
-
-        $requestData = json_decode($request->getContent(), TRUE);
-
-        if (!is_array($requestData)) {
-            \Drupal::logger('user_crud')->warning('registerToken failed: Invalid JSON body.');
-            return new JsonResponse([
-                'error' => 'Invalid JSON body.',
-            ], 400);
-        }
-
-        $name = trim((string) ($requestData['name'] ?? ''));
-        $id = $requestData['id'] ?? '';
-        $device = trim((string) ($requestData['device'] ?? ''));
-        $tokenValue = trim((string) ($requestData['token'] ?? ''));
-
-        \Drupal::logger('user_crud')->info('registerToken: Request data received: @request', [
-            '@request' => json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-        ]);
-
-        if ($name === '' || $id === '' || $device === '' || $tokenValue === '') {
-            \Drupal::logger('user_crud')->warning('registerToken failed: Missing required fields.');
-            return new JsonResponse([
-                'error' => 'Name, id, device, and token are required.',
-            ], 400);
-        }
-
-        $registeredToken = $this->userCrudAPPsService->registerDeviceToken($name, $id, $device, $tokenValue);
-
-        \Drupal::logger('user_crud')->info('registerToken completed successfully.');
-
-        return new JsonResponse([
-            'message' => 'Device token registered successfully.',
-            'data' => $registeredToken,
-        ], 201);
-    }
-
-    public function getRegisteredTokens() {
-        \Drupal::logger('user_crud')->info('getRegisteredTokens called.');
-
-        $registeredTokens = $this->userCrudAPPsService->getRegisteredTokens();
-
-        \Drupal::logger('user_crud')->info('getRegisteredTokens completed successfully.');
-
-        return new JsonResponse([
-            'data' => $registeredTokens,
-            'count' => count($registeredTokens),
-        ]);
-    }
-
     public function getCartAppData (Request $request) {
         \Drupal::logger('user_crud')->info('getCartAppData called.');
 
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning('getCartAppData failed: Authorization header is missing or not in Bearer format.');
-            return new JsonResponse([
-                'error' => 'Authorization header must use Bearer token format.',
-            ], 401);
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'getCartAppData');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
         }
-
-        \Drupal::logger('user_crud')->info('getCartAppData: Authorization header found.');
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning('getCartAppData failed: Invalid or expired access token.');
-            return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('getCartAppData: Access token is valid.');
 
         $cartData = $this->userCrudAPPsService->getCartAppData();
 
@@ -272,27 +112,10 @@ class UserCrudAPPsController extends ControllerBase {
     public function updateCartAppData($id, Request $request) {
         \Drupal::logger('user_crud')->info('updateCartAppData called for id ' . $id . '.');
 
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning('updateCartAppData failed: Authorization header is missing or not in Bearer format.');
-            return new JsonResponse([
-                'error' => 'Authorization header must use Bearer token format.',
-            ], 401);
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'updateCartAppData');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
         }
-
-        \Drupal::logger('user_crud')->info('updateCartAppData: Authorization header found.');
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning('updateCartAppData failed: Invalid or expired access token.');
-            return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('updateCartAppData: Access token is valid.');
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $count = $requestData['count'] ?? NULL;
@@ -329,27 +152,10 @@ class UserCrudAPPsController extends ControllerBase {
     public function deleteCartAppData($id, Request $request) {
         \Drupal::logger('user_crud')->info('deleteCartAppData called for id ' . $id . '.');
 
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            \Drupal::logger('user_crud')->warning('deleteCartAppData failed: Authorization header is missing or not in Bearer format.');
-            return new JsonResponse([
-                'error' => 'Authorization header must use Bearer token format.',
-            ], 401);
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'deleteCartAppData');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
         }
-
-        \Drupal::logger('user_crud')->info('deleteCartAppData: Authorization header found.');
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || ($jwtPayload['type'] ?? '') !== 'access') {
-            \Drupal::logger('user_crud')->warning('deleteCartAppData failed: Invalid or expired access token.');
-            return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
-            ], 401);
-        }
-
-        \Drupal::logger('user_crud')->info('deleteCartAppData: Access token is valid.');
 
         if (!$this->userCrudAPPsService->deleteCartAppData($id)) {
             \Drupal::logger('user_crud')->warning('deleteCartAppData failed: Cart product not found for id ' . $id . '.');
@@ -362,6 +168,66 @@ class UserCrudAPPsController extends ControllerBase {
 
         return new JsonResponse([
             'message' => 'Cart product deleted successfully.',
+        ]);
+    }
+
+
+    //Notification Token Section
+
+
+    public function registerToken(Request $request) {
+        \Drupal::logger('user_crud')->info('registerToken called.');
+
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'registerToken');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
+        }
+
+        $requestData = json_decode($request->getContent(), TRUE);
+
+        if (!is_array($requestData)) {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Invalid JSON body.');
+            return new JsonResponse([
+                'error' => 'Invalid JSON body.',
+            ], 400);
+        }
+
+        $name = trim((string) ($requestData['name'] ?? ''));
+        $id = $requestData['id'] ?? '';
+        $device = trim((string) ($requestData['device'] ?? ''));
+        $tokenValue = trim((string) ($requestData['token'] ?? ''));
+
+        \Drupal::logger('user_crud')->info('registerToken: Request data received: @request', [
+            '@request' => json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        ]);
+
+        if ($name === '' || $id === '' || $device === '' || $tokenValue === '') {
+            \Drupal::logger('user_crud')->warning('registerToken failed: Missing required fields.');
+            return new JsonResponse([
+                'error' => 'Name, id, device, and token are required.',
+            ], 400);
+        }
+
+        $registeredToken = $this->userCrudAPPsService->registerDeviceToken($name, $id, $device, $tokenValue);
+
+        \Drupal::logger('user_crud')->info('registerToken completed successfully.');
+
+        return new JsonResponse([
+            'message' => 'Device token registered successfully.',
+            'data' => $registeredToken,
+        ], 201);
+    }
+
+    public function getRegisteredTokens() { 
+        \Drupal::logger('user_crud')->info('getRegisteredTokens called.');
+
+        $registeredTokens = $this->userCrudAPPsService->getRegisteredTokens();
+
+        \Drupal::logger('user_crud')->info('getRegisteredTokens completed successfully.');
+
+        return new JsonResponse([
+            'data' => $registeredTokens,
+            'count' => count($registeredTokens),
         ]);
     }
 

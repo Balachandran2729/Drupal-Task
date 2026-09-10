@@ -34,10 +34,10 @@ class UserCrudAPPsService {
         $cart = \Drupal::state()->get('user_crud.cart', []);
         $cartItem = [
             'id' => $id,
-            'title' => $title,
-            'image' => $image,
             'count' => 1,
         ];
+
+        
 
         $updated = FALSE;
         foreach ($cart as $index => $item) {
