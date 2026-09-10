@@ -88,88 +88,133 @@ class UserCrudAPPsService {
     }
 
     public function getCartAppData() {
-        $cart = \Drupal::state()->get('user_crud.cart', []);
+        try {
+            $cart = \Drupal::state()->get('user_crud.cart', []);
 
-        foreach ($cart as $index => $item) {
-            $cart[$index]['count'] = $item['count'] ?? 1;
+            foreach ($cart as $index => $item) {
+                $cart[$index]['count'] = $item['count'] ?? 1;
+            }
+
+            \Drupal::state()->set('user_crud.cart', array_values($cart));
+
+            return array_values($cart);
         }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('getCartAppData failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
 
-        \Drupal::state()->set('user_crud.cart', array_values($cart));
-
-        return array_values($cart);
+            throw new \RuntimeException('Unable to load cart data from storage.', 0, $exception);
+        }
     }
 
     public function updateCartAppData($id, $count) {
-        $cart = \Drupal::state()->get('user_crud.cart', []);
+        try {
+            $cart = \Drupal::state()->get('user_crud.cart', []);
 
-        foreach ($cart as $index => $item) {
-            if ((string) ($item['id'] ?? '') === (string) $id) {
-                $cart[$index]['count'] = $count;
-                \Drupal::state()->set('user_crud.cart', array_values($cart));
+            foreach ($cart as $index => $item) {
+                if ((string) ($item['id'] ?? '') === (string) $id) {
+                    $cart[$index]['count'] = $count;
+                    \Drupal::state()->set('user_crud.cart', array_values($cart));
 
-                return $cart[$index];
+                    return $cart[$index];
+                }
             }
-        }
 
-        return NULL;
+            return NULL;
+        }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('updateCartAppData failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
+
+            throw new \RuntimeException('Unable to update cart data in storage.', 0, $exception);
+        }
     }
 
     public function deleteCartAppData($id) {
-        $cart = \Drupal::state()->get('user_crud.cart', []);
+        try {
+            $cart = \Drupal::state()->get('user_crud.cart', []);
 
-        foreach ($cart as $index => $item) {
-            if ((string) ($item['id'] ?? '') === (string) $id) {
-                unset($cart[$index]);
-                \Drupal::state()->set('user_crud.cart', array_values($cart));
+            foreach ($cart as $index => $item) {
+                if ((string) ($item['id'] ?? '') === (string) $id) {
+                    unset($cart[$index]);
+                    \Drupal::state()->set('user_crud.cart', array_values($cart));
 
-                return TRUE;
+                    return TRUE;
+                }
             }
-        }
 
-        return FALSE;
+            return FALSE;
+        }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('deleteCartAppData failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
+
+            throw new \RuntimeException('Unable to delete cart data from storage.', 0, $exception);
+        }
     }
 
 
     public function registerDeviceToken($name, $id, $device, $token) {
-        $storedTokens = \Drupal::state()->get('user_crud.notification_tokens', []);
+        try {
+            $storedTokens = \Drupal::state()->get('user_crud.notification_tokens', []);
 
-        $registeredToken = [
-            'name' => trim((string) $name),
-            'id' => (string) $id,
-            'device' => trim((string) $device),
-            'token' => trim((string) $token),
-            'registered_at' => time(),
-        ];
+            $registeredToken = [
+                'name' => trim((string) $name),
+                'id' => (string) $id,
+                'device' => trim((string) $device),
+                'token' => trim((string) $token),
+                'registered_at' => time(),
+            ];
 
-        $updated = FALSE;
-        foreach ($storedTokens as $index => $item) {
-            if ((string) ($item['token'] ?? '') === (string) $registeredToken['token']) {
-                $storedTokens[$index] = $registeredToken;
-                $updated = TRUE;
-                break;
+            $updated = FALSE;
+            foreach ($storedTokens as $index => $item) {
+                if ((string) ($item['token'] ?? '') === (string) $registeredToken['token']) {
+                    $storedTokens[$index] = $registeredToken;
+                    $updated = TRUE;
+                    break;
+                }
             }
+
+            if (!$updated) {
+                $storedTokens[] = $registeredToken;
+            }
+
+            \Drupal::state()->set('user_crud.notification_tokens', array_values($storedTokens));
+
+            return $registeredToken;
         }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('registerDeviceToken failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
 
-        if (!$updated) {
-            $storedTokens[] = $registeredToken;
+            throw new \RuntimeException('Unable to save device token data.', 0, $exception);
         }
-
-        \Drupal::state()->set('user_crud.notification_tokens', array_values($storedTokens));
-
-        return $registeredToken;
     }
 
     public function getRegisteredTokens() {
-        $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
+        try {
+            $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
 
-        foreach ($tokens as $index => $item) {
-            $tokens[$index]['name'] = trim((string) ($item['name'] ?? ''));
-            $tokens[$index]['id'] = (string) ($item['id'] ?? '');
-            $tokens[$index]['device'] = trim((string) ($item['device'] ?? ''));
-            $tokens[$index]['token'] = trim((string) ($item['token'] ?? ''));
+            foreach ($tokens as $index => $item) {
+                $tokens[$index]['name'] = trim((string) ($item['name'] ?? ''));
+                $tokens[$index]['id'] = (string) ($item['id'] ?? '');
+                $tokens[$index]['device'] = trim((string) ($item['device'] ?? ''));
+                $tokens[$index]['token'] = trim((string) ($item['token'] ?? ''));
+            }
+
+            return array_values($tokens);
         }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('getRegisteredTokens failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
 
-        return array_values($tokens);
+            throw new \RuntimeException('Unable to load registered tokens from storage.', 0, $exception);
+        }
     }
 
 
