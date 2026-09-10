@@ -31,30 +31,60 @@ class UserCrudAPPsService {
     }
 
     public function createCartAppData($id, $title, $image) {
-        $cart = \Drupal::state()->get('user_crud.cart', []);
-        $cartItem = [
-            'id' => $id,
-            'count' => 1,
-        ];
 
-        
+        try {
+            $response = $this->httpClient->get('https://dummyjson.com/products/' . $id );
 
-        $updated = FALSE;
-        foreach ($cart as $index => $item) {
-            if ((string) ($item['id'] ?? '') === (string) $id) {
-                $cart[$index] = $cartItem;
-                $updated = TRUE;
-                break;
+            $productData = json_decode($response->getBody()->getContents(), TRUE);
+
+            if (!is_array($productData) || empty($productData) || !isset($productData['id'])) {
+                throw new \RuntimeException('Product not found in database.');
             }
+
+            $cart = \Drupal::state()->get('user_crud.cart', []);
+
+            $cartItem = [
+                'id' => $id,
+                'title' => $title,
+                'image' => $image,
+                'count' => 1,
+            ];
+
+            $updated = FALSE;
+
+            foreach ($cart as $index => $item) {
+                if ((string) ($item['id'] ?? '') === (string) $id) {
+                    $cart[$index] = $cartItem;
+                    $updated = TRUE;
+                    break;
+                }
+            }
+
+            if (!$updated) {
+                $cart[] = $cartItem;
+            }
+
+            \Drupal::state()->set('user_crud.cart', array_values($cart) );
+
+            return $cartItem;
         }
+        catch (\Throwable $exception) {
 
-        if (!$updated) {
-            $cart[] = $cartItem;
+            \Drupal::logger('user_crud')->error(
+                'createCartAppData failed: @message',
+                [
+                    '@message' => $exception->getMessage(),
+                ]
+            );
+
+            $message = $exception->getMessage();
+
+            if (stripos($message, 'not found') !== FALSE || stripos($message, '404') !== FALSE) {
+                throw new \RuntimeException('Product not found in database.');
+            }
+
+            throw new \RuntimeException('Unable to validate product in database.');
         }
-
-        \Drupal::state()->set('user_crud.cart', array_values($cart));
-
-        return $cartItem;
     }
 
     public function getCartAppData() {

@@ -68,7 +68,9 @@ class UserCrudAPPsController extends ControllerBase {
         }
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
-        $id = $requestData['id'] ?? '';  
+        $id = $requestData['id'] ?? '';
+        $title= $requestData['title'] ?? '';
+        $image = $requestData['image'] ?? '';
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
@@ -82,7 +84,31 @@ class UserCrudAPPsController extends ControllerBase {
 
         \Drupal::logger('user_crud')->info('createCartAppData: Product details are valid. Calling service to add cart item.');
 
-        $cartItem = $this->userCrudAPPsService->createCartAppData($id, $title, $image);
+        try {
+            $cartItem = $this->userCrudAPPsService->createCartAppData($id, $title, $image);
+        }
+        catch (\Throwable $exception) {
+            $message = $exception->getMessage();
+            $statusCode = 500;
+            $errorMessage = 'Unable to create cart item.';
+
+            if (stripos($message, 'not found') !== FALSE) {
+                $statusCode = 404;
+                $errorMessage = 'Product not found in database.';
+            }
+            elseif (stripos($message, 'invalid') !== FALSE || stripos($message, 'missing') !== FALSE) {
+                $statusCode = 400;
+                $errorMessage = 'Invalid product input.';
+            }
+
+            \Drupal::logger('user_crud')->error('createCartAppData failed: @message', [
+                '@message' => $message,
+            ]);
+
+            return new JsonResponse([
+                'error' => $errorMessage,
+            ], $statusCode);
+        }
 
         \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
