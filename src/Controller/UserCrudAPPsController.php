@@ -84,31 +84,7 @@ class UserCrudAPPsController extends ControllerBase {
 
         \Drupal::logger('user_crud')->info('createCartAppData: Product details are valid. Calling service to add cart item.');
 
-        try {
-            $cartItem = $this->userCrudAPPsService->createCartAppData($id, $title, $image);
-        }
-        catch (\Throwable $exception) {
-            $message = $exception->getMessage();
-            $statusCode = 500;
-            $errorMessage = 'Unable to create cart item.';
-
-            if (stripos($message, 'not found') !== FALSE) {
-                $statusCode = 404;
-                $errorMessage = 'Product not found in database.';
-            }
-            elseif (stripos($message, 'invalid') !== FALSE || stripos($message, 'missing') !== FALSE) {
-                $statusCode = 400;
-                $errorMessage = 'Invalid product input.';
-            }
-
-            \Drupal::logger('user_crud')->error('createCartAppData failed: @message', [
-                '@message' => $message,
-            ]);
-
-            return new JsonResponse([
-                'error' => $errorMessage,
-            ], $statusCode);
-        }
+        $this->userCrudAPPsService->createCartAppData($id, $title, $image);
 
         \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
