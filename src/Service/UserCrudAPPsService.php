@@ -30,16 +30,36 @@ class UserCrudAPPsService {
         }
     }
 
-    public function createCartAppData($id, $title, $image) {
-
+    private function getValidatedProductData($id) {
         try {
-            $response = $this->httpClient->get('https://dummyjson.com/products/' . $id );
-
+            $response = $this->httpClient->get('https://dummyjson.com/products/' . $id);
             $productData = json_decode($response->getBody()->getContents(), TRUE);
 
             if (!is_array($productData) || empty($productData) || !isset($productData['id'])) {
                 throw new \RuntimeException('Product not found in database.');
             }
+
+            return $productData;
+        }
+        catch (\Throwable $exception) {
+            $message = $exception->getMessage();
+
+            if (stripos($message, 'not found') !== FALSE || stripos($message, '404') !== FALSE) {
+                throw new \RuntimeException('Product not found in database.', 0, $exception);
+            }
+
+            \Drupal::logger('user_crud')->error('getValidatedProductData failed for product @id: @message', [
+                '@id' => $id,
+                '@message' => $message,
+            ]);
+
+            throw new \RuntimeException('Unable to validate product in database.', 0, $exception);
+        }
+    }
+
+    public function createCartAppData($id, $title, $image) {
+        try {
+            $this->getValidatedProductData($id);
 
             $cart = \Drupal::state()->get('user_crud.cart', []);
 
@@ -64,26 +84,16 @@ class UserCrudAPPsService {
                 $cart[] = $cartItem;
             }
 
-            \Drupal::state()->set('user_crud.cart', array_values($cart) );
+            \Drupal::state()->set('user_crud.cart', array_values($cart));
 
             return $cartItem;
         }
         catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('createCartAppData failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
 
-            \Drupal::logger('user_crud')->error(
-                'createCartAppData failed: @message',
-                [
-                    '@message' => $exception->getMessage(),
-                ]
-            );
-
-            $message = $exception->getMessage();
-
-            if (stripos($message, 'not found') !== FALSE || stripos($message, '404') !== FALSE) {
-                throw new \RuntimeException('Product not found in database.');
-            }
-
-            throw new \RuntimeException('Unable to validate product in database.');
+            throw new \RuntimeException('Unable to add cart item.', 0, $exception);
         }
     }
 
@@ -110,6 +120,18 @@ class UserCrudAPPsService {
 
     public function updateCartAppData($id, $count) {
         try {
+            $productData = $this->getValidatedProductData($id);
+
+            $stock = $productData['stock'] ?? NULL;
+
+            if (!is_numeric($stock)) {
+                throw new \RuntimeException('Product stock information is unavailable in database.');
+            }
+
+            if ((int) $count > (int) $stock) {
+                throw new \RuntimeException('Requested quantity exceeds available stock.');
+            }
+
             $cart = \Drupal::state()->get('user_crud.cart', []);
 
             foreach ($cart as $index => $item) {
@@ -128,7 +150,7 @@ class UserCrudAPPsService {
                 '@message' => $exception->getMessage(),
             ]);
 
-            throw new \RuntimeException('Unable to update cart data in storage.', 0, $exception);
+            throw new \RuntimeException($exception->getMessage(), 0, $exception);
         }
     }
 
