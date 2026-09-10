@@ -74,9 +74,9 @@ class UserCrudAPPsController extends ControllerBase {
         \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
 
         if (empty($id) || !is_int($id) ) {
-            \Drupal::logger('user_crud')->warning('createCartAppData failed: Missing required fields.');
+            \Drupal::logger('user_crud')->error('createCartAppData failed: Missing required fields.');
             return new JsonResponse([
-                'error' => 'Oops ! , Somthing Went Wrong , Please try after sometimes.',
+                'error' => 'Id missing or Invalid',
             ], 400);
         }
 
@@ -157,8 +157,15 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
+        if (empty($id) || !ctype_digit((string) $id)) {
+            \Drupal::logger('user_crud')->error('DeleteCartAppData failed: Missing required fields.');
+            return new JsonResponse([
+                'error' => 'Id missing or Invalid',
+            ], 400);
+        }
+
         if (!$this->userCrudAPPsService->deleteCartAppData($id)) {
-            \Drupal::logger('user_crud')->warning('deleteCartAppData failed: Cart product not found for id ' . $id . '.');
+            \Drupal::logger('user_crud')->error('deleteCartAppData failed: Cart product not found for id ' . $id . '.');
             return new JsonResponse([
                 'error' => 'Cart product not found.',
             ], 404);
