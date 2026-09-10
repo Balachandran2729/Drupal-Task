@@ -73,10 +73,10 @@ class UserCrudAPPsController extends ControllerBase {
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
 
-        if (empty($id) ) {
+        if (empty($id) || !is_int($id) ) {
             \Drupal::logger('user_crud')->warning('createCartAppData failed: Missing required fields.');
             return new JsonResponse([
-                'error' => 'Oops ! , Somthing Went Wrong , Please try after sometime.',
+                'error' => 'Oops ! , Somthing Went Wrong , Please try after sometimes.',
             ], 400);
         }
 
