@@ -6,10 +6,6 @@ class UserCrudAPPsService {
 
     private $httpClient;
 
-    private function getCartStorageKey(int $uid): string {
-        return 'user_crud.cart.' . (string) $uid;
-    }
-
     public function __construct($httpClient) {
         $this->httpClient = $httpClient;
     }
@@ -76,31 +72,48 @@ class UserCrudAPPsService {
             }
 
         try {
-            $cartStorageKey = $this->getCartStorageKey((int) $uid);
-            $cart = \Drupal::state()->get($cartStorageKey, []);
-
             $cartItem = [
-                'id' => $id,
+                'id' => (int) $id,
                 'title' => $title,
                 'image' => $image,
-                'count' => $count,
+                'count' => (int) $count,
             ];
 
-            $updated = FALSE;
+            $db = \Drupal::database();
+            $existingItem = $db->select('user_crud_cart', 'c')
+                ->fields('c', ['id'])
+                ->condition('c.uid', (int) $uid)
+                ->condition('c.product_id', (int) $id)
+                ->range(0, 1)
+                ->execute()
+                ->fetchAssoc();
 
-            foreach ($cart as $index => $item) {
-                if ((string) ($item['id'] ?? '') === (string) $id) {
-                    $cart[$index] = $cartItem;
-                    $updated = TRUE;
-                    break;
-                }
+            $now = time();
+
+            if ($existingItem) {
+                $db->update('user_crud_cart')
+                    ->fields([
+                        'title' => $title,
+                        'image' => $image,
+                        'count' => (int) $count,
+                        'changed' => $now,
+                    ])
+                    ->condition('id', $existingItem['id'])
+                    ->execute();
             }
-
-            if (!$updated) {
-                $cart[] = $cartItem;
+            else {
+                $db->insert('user_crud_cart')
+                    ->fields([
+                        'uid' => (int) $uid,
+                        'product_id' => (int) $id,
+                        'title' => $title,
+                        'image' => $image,
+                        'count' => (int) $count,
+                        'created' => $now,
+                        'changed' => $now,
+                    ])
+                    ->execute();
             }
-
-            \Drupal::state()->set($cartStorageKey, array_values($cart));
 
             return $cartItem;
         }
@@ -115,16 +128,23 @@ class UserCrudAPPsService {
 
     public function getCartAppData($uid) {
         try {
-            $cartStorageKey = $this->getCartStorageKey((int) $uid);
-            $cart = \Drupal::state()->get($cartStorageKey, []);
+            $query = \Drupal::database()->select('user_crud_cart', 'c');
+            $query->fields('c');
+            $query->condition('c.uid', (int) $uid);
+            $query->orderBy('c.id');
 
-            foreach ($cart as $index => $item) {
-                $cart[$index]['count'] = $item['count'] ?? 1;
+            $cart = [];
+
+            foreach ($query->execute()->fetchAll(\PDO::FETCH_ASSOC) as $item) {
+                $cart[] = [
+                    'id' => (int) ($item['product_id'] ?? 0),
+                    'title' => $item['title'] ?? '',
+                    'image' => $item['image'] ?? '',
+                    'count' => (int) ($item['count'] ?? 1),
+                ];
             }
 
-            \Drupal::state()->set($cartStorageKey, array_values($cart));
-
-            return array_values($cart);
+            return $cart;
         }
         catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('getCartAppData failed: @message', [
@@ -149,19 +169,34 @@ class UserCrudAPPsService {
                 throw new \RuntimeException('Requested quantity exceeds available stock.');
             }
 
-            $cartStorageKey = $this->getCartStorageKey((int) $uid);
-            $cart = \Drupal::state()->get($cartStorageKey, []);
+            $db = \Drupal::database();
 
-            foreach ($cart as $index => $item) {
-                if ((string) ($item['id'] ?? '') === (string) $id) {
-                    $cart[$index]['count'] = $count;
-                    \Drupal::state()->set($cartStorageKey, array_values($cart));
+            $existingItem = $db->select('user_crud_cart', 'c')
+                ->fields('c')
+                ->condition('c.uid', (int) $uid)
+                ->condition('c.product_id', (int) $id)
+                ->range(0, 1)
+                ->execute()
+                ->fetchAssoc();
 
-                    return $cart[$index];
-                }
+            if (!$existingItem) {
+                return NULL;
             }
 
-            return NULL;
+            $db->update('user_crud_cart')
+                ->fields([
+                    'count' => (int) $count,
+                    'changed' => time(),
+                ])
+                ->condition('id', $existingItem['id'])
+                ->execute();
+
+            return [
+                'id' => (int) ($existingItem['product_id'] ?? $id),
+                'title' => $existingItem['title'] ?? '',
+                'image' => $existingItem['image'] ?? '',
+                'count' => (int) $count,
+            ];
         }
         catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('updateCartAppData failed: @message', [
@@ -174,19 +209,12 @@ class UserCrudAPPsService {
 
     public function deleteCartAppData($uid, $id) {
         try {
-            $cartStorageKey = $this->getCartStorageKey((int) $uid);
-            $cart = \Drupal::state()->get($cartStorageKey, []);
+            $deleted = \Drupal::database()->delete('user_crud_cart')
+                ->condition('uid', (int) $uid)
+                ->condition('product_id', (int) $id)
+                ->execute();
 
-            foreach ($cart as $index => $item) {
-                if ((string) ($item['id'] ?? '') === (string) $id) {
-                    unset($cart[$index]);
-                    \Drupal::state()->set($cartStorageKey, array_values($cart));
-
-                    return TRUE;
-                }
-            }
-
-            return FALSE;
+            return $deleted > 0;
         }
         catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('deleteCartAppData failed: @message', [

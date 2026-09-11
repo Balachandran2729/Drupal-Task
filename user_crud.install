@@ -1,0 +1,164 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function user_crud_schema() {
+  $schema['user_crud_cart'] = [
+    'description' => 'Stores cart items for each user.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'User ID.',
+      ],
+      'product_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'External product ID.',
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Product title.',
+      ],
+      'image' => [
+        'type' => 'varchar',
+        'length' => 500,
+        'not null' => FALSE,
+        'description' => 'Product image URL.',
+      ],
+      'count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Quantity in cart.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Timestamp when the cart item was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Timestamp when the cart item was last updated.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid_cart' => ['uid', 'cart_key'],
+      'product_lookup' => ['cart_key', 'product_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Create the user_crud_cart table for existing installs.
+ */
+function user_crud_update_10001() {
+  if (!\Drupal::database()->schema()->tableExists('user_crud_cart')) {
+    $schema = [
+      'description' => 'Stores cart items for each user.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Primary key.',
+        ],
+        'uid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'User ID.',
+        ],
+        'product_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'External product ID.',
+        ],
+        'title' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+          'description' => 'Product title.',
+        ],
+        'image' => [
+          'type' => 'varchar',
+          'length' => 500,
+          'not null' => FALSE,
+          'description' => 'Product image URL.',
+        ],
+        'count' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 1,
+          'description' => 'Quantity in cart.',
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Timestamp when the cart item was created.',
+        ],
+        'changed' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Timestamp when the cart item was last updated.',
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid_cart' => ['uid', 'cart_key'],
+        'product_lookup' => ['cart_key', 'product_id'],
+      ],
+    ];
+
+    \Drupal::database()->schema()->createTable('user_crud_cart', $schema);
+  }
+
+  return t('Created user_crud_cart table.');
+}
+
+/**
+ * Convert product_id column to INT for existing installs.
+ */
+function user_crud_update_10002() {
+  $schema = [
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'description' => 'External product ID.',
+  ];
+
+  \Drupal::database()->schema()->changeField('user_crud_cart', 'product_id', 'product_id', $schema);
+
+  return t('Converted user_crud_cart.product_id to integer.');
+}
+
+/**
+ * Remove the obsolete cart_key column from the cart table.
+ */
+function user_crud_update_10003() {
+  if (\Drupal::database()->schema()->fieldExists('user_crud_cart', 'cart_key')) {
+    \Drupal::database()->schema()->dropField('user_crud_cart', 'cart_key');
+  }
+
+  return t('Removed cart_key from user_crud_cart table.');
+}
