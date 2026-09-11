@@ -61,10 +61,21 @@ class UserCrudAPPsService {
         }
     }
 
-    public function createCartAppData($uid, $id, $title, $image) {
-        try {
-            $this->getValidatedProductData($id);
+    public function createCartAppData($uid, $id, $title, $image ,$count) {
 
+        $productData = $this->getValidatedProductData($id);
+
+            $stock = $productData['stock'] ?? NULL;
+
+            if (!is_numeric($stock)) {
+                throw new \RuntimeException('Product stock information is unavailable in database.');
+            }
+
+            if ((int) $count > (int) $stock) {
+                throw new \RuntimeException('Requested quantity exceeds available stock.');
+            }
+
+        try {
             $cartStorageKey = $this->getCartStorageKey((int) $uid);
             $cart = \Drupal::state()->get($cartStorageKey, []);
 
@@ -72,7 +83,7 @@ class UserCrudAPPsService {
                 'id' => $id,
                 'title' => $title,
                 'image' => $image,
-                'count' => 1,
+                'count' => $count,
             ];
 
             $updated = FALSE;

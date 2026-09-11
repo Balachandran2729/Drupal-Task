@@ -84,6 +84,7 @@ class UserCrudAPPsController extends ControllerBase {
         }
 
         $uid = $this->getAuthenticatedUserId($request);
+
         if ($uid === NULL) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: User ID missing from valid access token.');
             return new JsonResponse([
@@ -95,21 +96,24 @@ class UserCrudAPPsController extends ControllerBase {
         $id = $requestData['id'] ?? '';
         $title= $requestData['title'] ?? '';
         $image = $requestData['image'] ?? '';
+        $count = $requestData['count'] ?? '';
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
 
-        if (empty($id) || !is_int($id) ) {
+        if (empty($id) || !is_int($id) ||empty($count) || !is_int($count)) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: Missing required fields.');
             return new JsonResponse([
                 'error' => 'Oops! something went wrong, please try after some times.',
             ], 400);
         }
 
+
+
         try {
             \Drupal::logger('user_crud')->info('createCartAppData: Calling service for user @uid.',['@uid' => $uid]);
 
-        $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image);
+        $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image,$count);
 
         \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
