@@ -99,7 +99,7 @@ class UserCrudAPPsController extends ControllerBase {
         $count = $requestData['count'] ?? '';
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' . ($requestDataJson ?: '[]'));
+        \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' .$requestDataJson);
 
         if (empty($id) || !is_int($id) ||empty($count) || !is_int($count)) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: Missing required fields.');
@@ -108,22 +108,19 @@ class UserCrudAPPsController extends ControllerBase {
             ], 400);
         }
 
-
-
         try {
-            \Drupal::logger('user_crud')->info('createCartAppData: Calling service for user @uid.',['@uid' => $uid]);
+            
+            $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image,$count);
 
-        $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image,$count);
+            \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
-        \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
-
-        return new JsonResponse(['message' => 'Product added to cart successfully.',], 201);
+            return new JsonResponse(['message' => 'Product added to cart successfully.',], 201);
 
     } catch (\Throwable $e) {
 
-        \Drupal::logger('user_crud')->error('createCartAppData failed: @message',['@message' => $e->getMessage(),]);
+            \Drupal::logger('user_crud')->error('createCartAppData failed: @message',['@message' => $e->getMessage(),]);
 
-        return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.',], 500);
+            return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.',], 500);
     }
 }
 
@@ -180,7 +177,7 @@ class UserCrudAPPsController extends ControllerBase {
         $count = $requestData['count'] ?? NULL;
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        \Drupal::logger('user_crud')->info('updateCartAppData: Request data received: ');
+        \Drupal::logger('user_crud')->info('updateCartAppData: Request data received: ',$requestData);
         
         if (!is_int($count) || $count < 1 || empty($id) || !ctype_digit((string) $id) ) {
             \Drupal::logger('user_crud')->error('updateCartAppData failed: Count value or ID is missing or invalid.');

@@ -10,6 +10,8 @@ class UserCrudAPPsService {
         $this->httpClient = $httpClient;
     }
 
+    
+    // Get the Data from  DummyJson url for App frontend
     public function getAppData($limit, $skip) {
         try {
             $response = $this->httpClient->get('https://dummyjson.com/products', [
@@ -30,6 +32,7 @@ class UserCrudAPPsService {
         }
     }
 
+    // Validate a Prodect for create and update cart function like prodect exites or not , stock like that.
     private function getValidatedProductData($id) {
         try {
             $response = $this->httpClient->get('https://dummyjson.com/products/' . $id);
@@ -57,6 +60,8 @@ class UserCrudAPPsService {
         }
     }
 
+
+    // create a cart 
     public function createCartAppData($uid, $id, $title, $image ,$count) {
 
         $productData = $this->getValidatedProductData($id);
@@ -91,15 +96,7 @@ class UserCrudAPPsService {
             $now = time();
 
             if ($existingItem) {
-                $db->update('user_crud_cart')
-                    ->fields([
-                        'title' => $title,
-                        'image' => $image,
-                        'count' => (int) $count,
-                        'changed' => $now,
-                    ])
-                    ->condition('id', $existingItem['id'])
-                    ->execute();
+                throw new \RuntimeException('Product is already in the cart.');
             }
             else {
                 $db->insert('user_crud_cart')
@@ -126,6 +123,8 @@ class UserCrudAPPsService {
         }
     }
 
+
+    // Get a cart for database
     public function getCartAppData($uid) {
         try {
             $query = \Drupal::database()->select('user_crud_cart', 'c');
@@ -155,6 +154,8 @@ class UserCrudAPPsService {
         }
     }
 
+
+    // Update a cart
     public function updateCartAppData($uid, $id, $count) {
         try {
             $productData = $this->getValidatedProductData($id);
@@ -207,6 +208,8 @@ class UserCrudAPPsService {
         }
     }
 
+
+    // Delete a cart
     public function deleteCartAppData($uid, $id) {
         try {
             $deleted = \Drupal::database()->delete('user_crud_cart')
@@ -226,6 +229,7 @@ class UserCrudAPPsService {
     }
 
 
+    //store a Notification Token.
     public function registerDeviceToken($name, $id, $device, $token) {
         try {
             $storedTokens = \Drupal::state()->get('user_crud.notification_tokens', []);
@@ -264,6 +268,8 @@ class UserCrudAPPsService {
         }
     }
 
+
+    // Get the notofication token with user details , only Testing Perpose
     public function getRegisteredTokens() {
         try {
             $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
