@@ -87,7 +87,7 @@ class UserCrudAPPsController extends ControllerBase {
         if ($uid === NULL) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: User ID missing from valid access token.');
             return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
+                'error' => 'Please log out and log in again.',
             ], 401);
         }
 
@@ -102,22 +102,26 @@ class UserCrudAPPsController extends ControllerBase {
         if (empty($id) || !is_int($id) ) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: Missing required fields.');
             return new JsonResponse([
-                'error' => 'Id missing or Invalid',
+                'error' => 'Oops! something went wrong, please try after some times.',
             ], 400);
         }
 
-        \Drupal::logger('user_crud')->info('createCartAppData: Product details are valid. Calling service to add cart item for user @uid.', [
-            '@uid' => $uid,
-        ]);
+        try {
+            \Drupal::logger('user_crud')->info('createCartAppData: Calling service for user @uid.',['@uid' => $uid]);
 
-        $this->userCrudAPPsService->createCartAppData($uid, $id, $title, $image);
+        $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image);
 
         \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
-        return new JsonResponse([
-            'message' => 'Product added to cart successfully.',
-        ], 201);
+        return new JsonResponse(['message' => 'Product added to cart successfully.',], 201);
+
+    } catch (\Throwable $e) {
+
+        \Drupal::logger('user_crud')->error('createCartAppData failed: @message',['@message' => $e->getMessage(),]);
+
+        return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.',], 500);
     }
+}
 
     public function getCartAppData (Request $request) {
         \Drupal::logger('user_crud')->info('getCartAppData called.');
@@ -131,18 +135,25 @@ class UserCrudAPPsController extends ControllerBase {
         if ($uid === NULL) {
             \Drupal::logger('user_crud')->error('getCartAppData failed: User ID missing from valid access token.');
             return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
+                'error' => 'Please log out and log in again.',
             ], 401);
         }
 
-        $cartData = $this->userCrudAPPsService->getCartAppData($uid);
+        try {
 
-        \Drupal::logger('user_crud')->info('getCartAppData completed successfully.');
+            $cartData = $this->userCrudAPPsService->getCartAppData($uid);
 
-        return new JsonResponse([
-            'cart' => $cartData,
-        ]);
+            \Drupal::logger('user_crud')->info('getCartAppData completed successfully.' );
 
+            return new JsonResponse(['cart' => $cartData,], 200);
+
+        } catch (\Throwable $e) {
+
+            \Drupal::logger('user_crud')->error(
+                'getCartAppData failed for user @uid: @message',['@uid' => $uid,'@message' => $e->getMessage(), ]  );
+
+            return new JsonResponse(['error' => 'Something went wrong while Geting cart data.',], 500);
+        }
     }
 
     public function updateCartAppData($id, Request $request) {
@@ -157,7 +168,7 @@ class UserCrudAPPsController extends ControllerBase {
         if ($uid === NULL) {
             \Drupal::logger('user_crud')->error('updateCartAppData failed: User ID missing from valid access token.');
             return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
+                'error' => 'Please log out and log in again.',
             ], 401);
         }
 
@@ -170,7 +181,7 @@ class UserCrudAPPsController extends ControllerBase {
         if (!is_int($count) || $count < 1 || empty($id) || !ctype_digit((string) $id) ) {
             \Drupal::logger('user_crud')->error('updateCartAppData failed: Count value or ID is missing or invalid.');
             return new JsonResponse([
-                'error' => 'Count must be a positive integer. or ID Missing',
+                'error' => 'Please provide a valid quantity or Please Try After Some time.',
             ], 400);
         }
 
@@ -179,14 +190,26 @@ class UserCrudAPPsController extends ControllerBase {
             '@uid' => $uid,
         ]);
 
-        $cartItem = $this->userCrudAPPsService->updateCartAppData($uid, $id, $count);
-        
-        \Drupal::logger('user_crud')->info('updateCartAppData completed successfully for id ' . $id . '.');
+        try {
+            $cartItem = $this->userCrudAPPsService->updateCartAppData( $uid,$id,$count );
 
-        return new JsonResponse([
-            'message' => 'Cart product updated successfully.',
-            'item' => $cartItem,
-        ]);
+            \Drupal::logger('user_crud')->info( 'updateCartAppData completed successfully for id @id.',['@id' => $id]);
+
+            return new JsonResponse(['message' => 'Cart product updated successfully.','item' => $cartItem,], 200);
+
+        } catch (\Throwable $e) {
+
+            \Drupal::logger('user_crud')->error(
+                'updateCartAppData failed for id @id, user @uid: @message',
+                [
+                    '@id' => $id,
+                    '@uid' => $uid,
+                    '@message' => $e->getMessage(),
+                ]
+            );
+
+            return new JsonResponse(['error' => 'Something went wrong while updating the cart product.',], 500);
+        }
     }
 
     public function deleteCartAppData($id, Request $request) {
@@ -201,29 +224,44 @@ class UserCrudAPPsController extends ControllerBase {
         if ($uid === NULL) {
             \Drupal::logger('user_crud')->error('deleteCartAppData failed: User ID missing from valid access token.');
             return new JsonResponse([
-                'error' => 'Invalid or expired access token.',
+                'error' => 'Please log out and log in again.',
             ], 401);
         }
 
         if (empty($id) || !ctype_digit((string) $id)) {
             \Drupal::logger('user_crud')->error('DeleteCartAppData failed: Missing required fields.');
             return new JsonResponse([
-                'error' => 'Id missing or Invalid',
+                'error' => 'Oops! something went wrong, please try after some times.',
             ], 400);
         }
 
-        if (!$this->userCrudAPPsService->deleteCartAppData($uid, $id)) {
-            \Drupal::logger('user_crud')->error('deleteCartAppData failed: Cart product not found for id ' . $id . '.');
-            return new JsonResponse([
-                'error' => 'Cart product not found.',
-            ], 404);
+        try {
+
+            $deleted = $this->userCrudAPPsService->deleteCartAppData($uid, $id);
+
+            if (!$deleted) {
+                \Drupal::logger('user_crud')->error('deleteCartAppData failed: Cart product not found for id @id.',['@id' => $id]);
+
+                return new JsonResponse(['error' => 'Cart product not found.',], 404);
+            }
+
+            \Drupal::logger('user_crud')->info( 'deleteCartAppData completed successfully for id @id.',['@id' => $id]);
+
+            return new JsonResponse(['message' => 'Cart product deleted successfully.',], 200);
+
+        } catch (\Throwable $e) {
+
+            \Drupal::logger('user_crud')->error(
+                'deleteCartAppData failed for id @id, user @uid: @message',
+                [
+                    '@id' => $id,
+                    '@uid' => $uid,
+                    '@message' => $e->getMessage(),
+                ]
+            );
+
+            return new JsonResponse(['error' => 'Something went wrong while deleting the cart product.',], 500);
         }
-
-        \Drupal::logger('user_crud')->info('deleteCartAppData completed successfully for id ' . $id . '.');
-
-        return new JsonResponse([
-            'message' => 'Cart product deleted successfully.',
-        ]);
     }
 
 
@@ -243,7 +281,7 @@ class UserCrudAPPsController extends ControllerBase {
         if (!is_array($requestData)) {
             \Drupal::logger('user_crud')->warning('registerToken failed: Invalid JSON body.');
             return new JsonResponse([
-                'error' => 'Invalid JSON body.',
+                'error' => 'Please send a valid JSON request body.',
             ], 400);
         }
 
@@ -259,7 +297,7 @@ class UserCrudAPPsController extends ControllerBase {
         if ($name === '' || $id === '' || $device === '' || $tokenValue === '') {
             \Drupal::logger('user_crud')->warning('registerToken failed: Missing required fields.');
             return new JsonResponse([
-                'error' => 'Name, id, device, and token are required.',
+                'error' => 'Please provide your name, id, device, and token.',
             ], 400);
         }
 
