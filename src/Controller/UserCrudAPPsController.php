@@ -221,6 +221,7 @@ class UserCrudAPPsController extends ControllerBase {
         }
 
         $uid = $this->getAuthenticatedUserId($request);
+        
         if ($uid === NULL) {
             \Drupal::logger('user_crud')->error('deleteCartAppData failed: User ID missing from valid access token.');
             return new JsonResponse([
