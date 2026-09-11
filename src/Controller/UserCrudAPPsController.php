@@ -34,6 +34,22 @@ class UserCrudAPPsController extends ControllerBase {
         );
     }
 
+    private function getAuthenticatedUserId(Request $request): ?int {
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
+            return NULL;
+        }
+
+        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
+
+        if (!$jwtPayload || !isset($jwtPayload['uid']) || !is_numeric($jwtPayload['uid'])) {
+            return NULL;
+        }
+
+        return (int) $jwtPayload['uid'];
+    }
+
     public function getAppData (Request $request) {
 
         \Drupal::logger('user_crud')->info('getAppData called.');
@@ -67,6 +83,14 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
+        $uid = $this->getAuthenticatedUserId($request);
+        if ($uid === NULL) {
+            \Drupal::logger('user_crud')->error('createCartAppData failed: User ID missing from valid access token.');
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $id = $requestData['id'] ?? '';
         $title= $requestData['title'] ?? '';
@@ -82,9 +106,11 @@ class UserCrudAPPsController extends ControllerBase {
             ], 400);
         }
 
-        \Drupal::logger('user_crud')->info('createCartAppData: Product details are valid. Calling service to add cart item.');
+        \Drupal::logger('user_crud')->info('createCartAppData: Product details are valid. Calling service to add cart item for user @uid.', [
+            '@uid' => $uid,
+        ]);
 
-        $this->userCrudAPPsService->createCartAppData($id, $title, $image);
+        $this->userCrudAPPsService->createCartAppData($uid, $id, $title, $image);
 
         \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
@@ -101,7 +127,15 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
-        $cartData = $this->userCrudAPPsService->getCartAppData();
+        $uid = $this->getAuthenticatedUserId($request);
+        if ($uid === NULL) {
+            \Drupal::logger('user_crud')->error('getCartAppData failed: User ID missing from valid access token.');
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
+        $cartData = $this->userCrudAPPsService->getCartAppData($uid);
 
         \Drupal::logger('user_crud')->info('getCartAppData completed successfully.');
 
@@ -119,6 +153,14 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
+        $uid = $this->getAuthenticatedUserId($request);
+        if ($uid === NULL) {
+            \Drupal::logger('user_crud')->error('updateCartAppData failed: User ID missing from valid access token.');
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $count = $requestData['count'] ?? NULL;
 
@@ -132,9 +174,12 @@ class UserCrudAPPsController extends ControllerBase {
             ], 400);
         }
 
-        \Drupal::logger('user_crud')->info('updateCartAppData: Updating cart item with count @count.');
+        \Drupal::logger('user_crud')->info('updateCartAppData: Updating cart item with count @count for user @uid.', [
+            '@count' => $count,
+            '@uid' => $uid,
+        ]);
 
-        $cartItem = $this->userCrudAPPsService->updateCartAppData($id, $count);
+        $cartItem = $this->userCrudAPPsService->updateCartAppData($uid, $id, $count);
         
         \Drupal::logger('user_crud')->info('updateCartAppData completed successfully for id ' . $id . '.');
 
@@ -152,6 +197,14 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
+        $uid = $this->getAuthenticatedUserId($request);
+        if ($uid === NULL) {
+            \Drupal::logger('user_crud')->error('deleteCartAppData failed: User ID missing from valid access token.');
+            return new JsonResponse([
+                'error' => 'Invalid or expired access token.',
+            ], 401);
+        }
+
         if (empty($id) || !ctype_digit((string) $id)) {
             \Drupal::logger('user_crud')->error('DeleteCartAppData failed: Missing required fields.');
             return new JsonResponse([
@@ -159,7 +212,7 @@ class UserCrudAPPsController extends ControllerBase {
             ], 400);
         }
 
-        if (!$this->userCrudAPPsService->deleteCartAppData($id)) {
+        if (!$this->userCrudAPPsService->deleteCartAppData($uid, $id)) {
             \Drupal::logger('user_crud')->error('deleteCartAppData failed: Cart product not found for id ' . $id . '.');
             return new JsonResponse([
                 'error' => 'Cart product not found.',

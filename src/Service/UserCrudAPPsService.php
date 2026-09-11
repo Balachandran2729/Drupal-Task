@@ -6,6 +6,10 @@ class UserCrudAPPsService {
 
     private $httpClient;
 
+    private function getCartStorageKey(int $uid): string {
+        return 'user_crud.cart.' . (string) $uid;
+    }
+
     public function __construct($httpClient) {
         $this->httpClient = $httpClient;
     }
@@ -57,11 +61,12 @@ class UserCrudAPPsService {
         }
     }
 
-    public function createCartAppData($id, $title, $image) {
+    public function createCartAppData($uid, $id, $title, $image) {
         try {
             $this->getValidatedProductData($id);
 
-            $cart = \Drupal::state()->get('user_crud.cart', []);
+            $cartStorageKey = $this->getCartStorageKey((int) $uid);
+            $cart = \Drupal::state()->get($cartStorageKey, []);
 
             $cartItem = [
                 'id' => $id,
@@ -84,7 +89,7 @@ class UserCrudAPPsService {
                 $cart[] = $cartItem;
             }
 
-            \Drupal::state()->set('user_crud.cart', array_values($cart));
+            \Drupal::state()->set($cartStorageKey, array_values($cart));
 
             return $cartItem;
         }
@@ -97,15 +102,16 @@ class UserCrudAPPsService {
         }
     }
 
-    public function getCartAppData() {
+    public function getCartAppData($uid) {
         try {
-            $cart = \Drupal::state()->get('user_crud.cart', []);
+            $cartStorageKey = $this->getCartStorageKey((int) $uid);
+            $cart = \Drupal::state()->get($cartStorageKey, []);
 
             foreach ($cart as $index => $item) {
                 $cart[$index]['count'] = $item['count'] ?? 1;
             }
 
-            \Drupal::state()->set('user_crud.cart', array_values($cart));
+            \Drupal::state()->set($cartStorageKey, array_values($cart));
 
             return array_values($cart);
         }
@@ -118,7 +124,7 @@ class UserCrudAPPsService {
         }
     }
 
-    public function updateCartAppData($id, $count) {
+    public function updateCartAppData($uid, $id, $count) {
         try {
             $productData = $this->getValidatedProductData($id);
 
@@ -132,12 +138,13 @@ class UserCrudAPPsService {
                 throw new \RuntimeException('Requested quantity exceeds available stock.');
             }
 
-            $cart = \Drupal::state()->get('user_crud.cart', []);
+            $cartStorageKey = $this->getCartStorageKey((int) $uid);
+            $cart = \Drupal::state()->get($cartStorageKey, []);
 
             foreach ($cart as $index => $item) {
                 if ((string) ($item['id'] ?? '') === (string) $id) {
                     $cart[$index]['count'] = $count;
-                    \Drupal::state()->set('user_crud.cart', array_values($cart));
+                    \Drupal::state()->set($cartStorageKey, array_values($cart));
 
                     return $cart[$index];
                 }
@@ -154,14 +161,15 @@ class UserCrudAPPsService {
         }
     }
 
-    public function deleteCartAppData($id) {
+    public function deleteCartAppData($uid, $id) {
         try {
-            $cart = \Drupal::state()->get('user_crud.cart', []);
+            $cartStorageKey = $this->getCartStorageKey((int) $uid);
+            $cart = \Drupal::state()->get($cartStorageKey, []);
 
             foreach ($cart as $index => $item) {
                 if ((string) ($item['id'] ?? '') === (string) $id) {
                     unset($cart[$index]);
-                    \Drupal::state()->set('user_crud.cart', array_values($cart));
+                    \Drupal::state()->set($cartStorageKey, array_values($cart));
 
                     return TRUE;
                 }
