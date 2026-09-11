@@ -248,7 +248,7 @@ class UserCrudAPPsController extends ControllerBase {
             \Drupal::logger('user_crud')->info( 'deleteCartAppData completed successfully for id @id.',['@id' => $id]);
 
             return new JsonResponse(['message' => 'Cart product deleted successfully.',], 200);
-
+    
         } catch (\Throwable $e) {
 
             \Drupal::logger('user_crud')->error(
