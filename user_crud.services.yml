@@ -9,6 +9,10 @@ services:
   user_crud.verify_tokens:
     class: Drupal\user_crud\Service\UserCrudVerifyTokens
 
+  user_crud.app_validation:
+    class: Drupal\user_crud\Service\UserCrudAppValidationService
+    arguments: ['@user_crud.jwt_auth']
+
   user_crud.login_subscriber:
     class: Drupal\user_crud\EventSubscriber\UserCrudLoginSubscriber
     tags:

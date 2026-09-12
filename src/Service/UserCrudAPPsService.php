@@ -10,7 +10,7 @@ class UserCrudAPPsService {
         $this->httpClient = $httpClient;
     }
 
-    
+
     // Get the Data from  DummyJson url for App frontend
     public function getAppData($limit, $skip) {
         try {
@@ -77,23 +77,23 @@ class UserCrudAPPsService {
             }
 
         try {
-            $cartItem = [
-                'id' => (int) $id,
-                'title' => $title,
-                'image' => $image,
-                'count' => (int) $count,
-            ];
+                $cartItem = [
+                    'id' => (int) $id,
+                    'title' => $title,
+                    'image' => $image,
+                    'count' => (int) $count,
+                ];
 
-            $db = \Drupal::database();
-            $existingItem = $db->select('user_crud_cart', 'c')
-                ->fields('c', ['id'])
-                ->condition('c.uid', (int) $uid)
-                ->condition('c.product_id', (int) $id)
-                ->range(0, 1)
-                ->execute()
-                ->fetchAssoc();
+                $db = \Drupal::database();
+                $existingItem = $db->select('user_crud_cart', 'c')
+                    ->fields('c', ['id'])
+                    ->condition('c.uid', (int) $uid)
+                    ->condition('c.product_id', (int) $id)
+                    ->range(0, 1)
+                    ->execute()
+                    ->fetchAssoc();
 
-            $now = time();
+                $now = time();
 
             if ($existingItem) {
                 throw new \RuntimeException('Product is already in the cart.');
@@ -157,18 +157,21 @@ class UserCrudAPPsService {
 
     // Update a cart
     public function updateCartAppData($uid, $id, $count) {
+
+
+        $productData = $this->getValidatedProductData($id);
+
+        $stock = $productData['stock'] ?? NULL;
+
+        if (!is_numeric($stock)) {
+            throw new \RuntimeException('Product stock information is unavailable in database.');
+        }
+
+        if ((int) $count > (int) $stock) {
+            throw new \RuntimeException('Requested quantity exceeds available stock.');
+        }
+
         try {
-            $productData = $this->getValidatedProductData($id);
-
-            $stock = $productData['stock'] ?? NULL;
-
-            if (!is_numeric($stock)) {
-                throw new \RuntimeException('Product stock information is unavailable in database.');
-            }
-
-            if ((int) $count > (int) $stock) {
-                throw new \RuntimeException('Requested quantity exceeds available stock.');
-            }
 
             $db = \Drupal::database();
 

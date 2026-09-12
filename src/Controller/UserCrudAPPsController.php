@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\user_crud\Service\UserCrudVerifyTokens;
 use Drupal\user_crud\Service\UserCrudAPPsService;
 use Drupal\user_crud\Service\JwtAuthService;
+use Drupal\user_crud\Service\UserCrudAppValidationService;
 
 
 class UserCrudAPPsController extends ControllerBase {
@@ -19,11 +20,13 @@ class UserCrudAPPsController extends ControllerBase {
     private UserCrudAPPsService $userCrudAPPsService;
     private UserCrudVerifyTokens $tokenService;
     private JwtAuthService $jwtAuthService;
+    private UserCrudAppValidationService $appValidationService;
 
-    public function __construct(UserCrudAPPsService $userCrudAPPsService, UserCrudVerifyTokens $tokenService, JwtAuthService $jwtAuthService) {
+    public function __construct(UserCrudAPPsService $userCrudAPPsService, UserCrudVerifyTokens $tokenService, JwtAuthService $jwtAuthService, UserCrudAppValidationService $appValidationService) {
         $this->userCrudAPPsService = $userCrudAPPsService;
         $this->tokenService = $tokenService;
         $this->jwtAuthService = $jwtAuthService;
+        $this->appValidationService = $appValidationService;
     }
 
     public static function create(ContainerInterface $container) {
@@ -31,23 +34,8 @@ class UserCrudAPPsController extends ControllerBase {
             $container->get('user_crud.apps_service'),
             $container->get('user_crud.verify_tokens'),
             $container->get('user_crud.jwt_auth'),
+            $container->get('user_crud.app_validation'),
         );
-    }
-
-    private function getAuthenticatedUserId(Request $request): ?int {
-        $authorization = $request->headers->get('Authorization', '');
-
-        if (!preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)) {
-            return NULL;
-        }
-
-        $jwtPayload = $this->jwtAuthService->decodeToken($matches[1]);
-
-        if (!$jwtPayload || !isset($jwtPayload['uid']) || !is_numeric($jwtPayload['uid'])) {
-            return NULL;
-        }
-
-        return (int) $jwtPayload['uid'];
     }
 
     public function getAppData (Request $request) {
@@ -83,14 +71,12 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
-        $uid = $this->getAuthenticatedUserId($request);
-
-        if ($uid === NULL) {
-            \Drupal::logger('user_crud')->error('createCartAppData failed: User ID missing from valid access token.');
-            return new JsonResponse([
-                'error' => 'Please log out and log in again.',
-            ], 401);
+        $validatedUser = $this->appValidationService->validateAuthenticatedUser($request, 'createCartAppData');
+        if ($validatedUser instanceof JsonResponse) {
+            return $validatedUser;
         }
+
+        $uid = $validatedUser['uid'];
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $id = $requestData['id'] ?? '';
@@ -101,28 +87,27 @@ class UserCrudAPPsController extends ControllerBase {
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('createCartAppData: Request data received: ' .$requestDataJson);
 
-        if (empty($id) || !is_int($id) ||empty($count) || !is_int($count)) {
+        $validationError = $this->appValidationService->validateCartRequestFields($id, $count);
+        if ($validationError instanceof JsonResponse) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: Missing required fields.');
-            return new JsonResponse([
-                'error' => 'Oops! something went wrong, please try after some times.',
-            ], 400);
+            return $validationError;
         }
 
         try {
-            
+
             $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image,$count);
 
             \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
             return new JsonResponse(['message' => 'Product added to cart successfully.',], 201);
 
-    } catch (\Throwable $e) {
+        } catch (\Throwable $e) {
 
-            \Drupal::logger('user_crud')->error('createCartAppData failed: @message',['@message' => $e->getMessage(),]);
+                \Drupal::logger('user_crud')->error('createCartAppData failed: @message',['@message' => $e->getMessage(),]);
 
-            return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.',], 500);
+                return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.',], 500);
+        }
     }
-}
 
     public function getCartAppData (Request $request) {
         \Drupal::logger('user_crud')->info('getCartAppData called.');
@@ -132,13 +117,12 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
-        $uid = $this->getAuthenticatedUserId($request);
-        if ($uid === NULL) {
-            \Drupal::logger('user_crud')->error('getCartAppData failed: User ID missing from valid access token.');
-            return new JsonResponse([
-                'error' => 'Please log out and log in again.',
-            ], 401);
+        $validatedUser = $this->appValidationService->validateAuthenticatedUser($request, 'getCartAppData');
+        if ($validatedUser instanceof JsonResponse) {
+            return $validatedUser;
         }
+
+        $uid = $validatedUser['uid'];
 
         try {
 
@@ -165,25 +149,25 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
-        $uid = $this->getAuthenticatedUserId($request);
-        if ($uid === NULL) {
-            \Drupal::logger('user_crud')->error('updateCartAppData failed: User ID missing from valid access token.');
-            return new JsonResponse([
-                'error' => 'Please log out and log in again.',
-            ], 401);
+        $validatedUser = $this->appValidationService->validateAuthenticatedUser($request, 'updateCartAppData');
+        
+        if ($validatedUser instanceof JsonResponse) {
+            return $validatedUser;
         }
+
+        $uid = $validatedUser['uid'];
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $count = $requestData['count'] ?? NULL;
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('updateCartAppData: Request data received: ',$requestData);
+
+        $validationError = $this->appValidationService->validateCartRequestFields($id, $count);
         
-        if (!is_int($count) || $count < 1 || empty($id) || !ctype_digit((string) $id) ) {
+        if ($validationError instanceof JsonResponse) {
             \Drupal::logger('user_crud')->error('updateCartAppData failed: Count value or ID is missing or invalid.');
-            return new JsonResponse([
-                'error' => 'Please provide a valid quantity or Please Try After Some time.',
-            ], 400);
+            return $validationError;
         }
 
         \Drupal::logger('user_crud')->info('updateCartAppData: Updating cart item with count @count for user @uid.', [
@@ -221,20 +205,17 @@ class UserCrudAPPsController extends ControllerBase {
             return $validationResponse;
         }
 
-        $uid = $this->getAuthenticatedUserId($request);
-        
-        if ($uid === NULL) {
-            \Drupal::logger('user_crud')->error('deleteCartAppData failed: User ID missing from valid access token.');
-            return new JsonResponse([
-                'error' => 'Please log out and log in again.',
-            ], 401);
+        $validatedUser = $this->appValidationService->validateAuthenticatedUser($request, 'deleteCartAppData');
+        if ($validatedUser instanceof JsonResponse) {
+            return $validatedUser;
         }
 
-        if (empty($id) || !ctype_digit((string) $id)) {
+        $uid = $validatedUser['uid'];
+
+        $validationError = $this->appValidationService->validateCartRequestFields($id);
+        if ($validationError instanceof JsonResponse) {
             \Drupal::logger('user_crud')->error('DeleteCartAppData failed: Missing required fields.');
-            return new JsonResponse([
-                'error' => 'Oops! something went wrong, please try after some times.',
-            ], 400);
+            return $validationError;
         }
 
         try {
