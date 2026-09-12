@@ -9,6 +9,10 @@ services:
   user_crud.verify_tokens:
     class: Drupal\user_crud\Service\UserCrudVerifyTokens
 
+  user_crud.app_validation:
+    class: Drupal\user_crud\Service\UserCrudAppValidationService
+    arguments: ['@user_crud.jwt_auth']
+
   user_crud.login_subscriber:
     class: Drupal\user_crud\EventSubscriber\UserCrudLoginSubscriber
     tags:
@@ -16,4 +20,8 @@ services:
 
   user_crud.apps_service:
     class: Drupal\user_crud\Service\UserCrudAppsService
+    arguments: ['@http_client']
+
+  user_crud.notification_service:
+    class: Drupal\user_crud\Service\UserCrudNotificationService
     arguments: ['@http_client']

@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function user_crud_schema() {
+  $schema['user_crud_cart'] = [
+    'description' => 'Stores cart items for each user.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'product_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'image' => [
+        'type' => 'varchar',
+        'length' => 500,
+        'not null' => FALSE,
+      ],
+      'count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'changed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid_cart' => ['uid'],
+      'product_lookup' => ['product_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Creates the cart table on existing installs if it does not already exist.
+ */
+function user_crud_update_10001() {
+  if (!\Drupal::database()->schema()->tableExists('user_crud_cart')) {
+    \Drupal::database()->schema()->createTable('user_crud_cart', user_crud_schema()['user_crud_cart']);
+  }
+
+  return t('Ensured user_crud_cart table exists.');
+}

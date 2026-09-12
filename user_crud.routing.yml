@@ -180,4 +180,61 @@ user_crud.deleteCartAppData:
     _access: 'TRUE'
     id: '\d+'
   options:
+<<<<<<< HEAD
     _admin_route: FALSE   
+=======
+    _admin_route: FALSE
+
+user_crud.registerToken:
+  path: '/api/notifications/register-token'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::registerToken'
+    _title: 'Register Device Token'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+user_crud.getRegisteredTokens:
+  path: '/api/notifications/get-registered-tokens'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::getRegisteredTokens'
+    _title: 'Get Registered Device Tokens'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+user_crud.notifications:
+  path: '/admin/notifications'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::list'
+    _title: 'Notifications'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.notifications.send:
+  path: '/admin/notifications/send'
+  defaults:
+    _form: '\Drupal\user_crud\Form\UserCrudSendNotificationForm'
+    _title: 'Send Notification'
+  requirements:
+    _permission: 'manage user crud'
+  options:
+    _admin_route: TRUE
+
+user_crud.api_send_notification:
+  path: '/api/notifications/send'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::sendNotification'
+    _title: 'Send Notification'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _admin_route: FALSE
+>>>>>>> feature/bugfix
