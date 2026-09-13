@@ -180,9 +180,6 @@ user_crud.deleteCartAppData:
     _access: 'TRUE'
     id: '\d+'
   options:
-<<<<<<< HEAD
-    _admin_route: FALSE   
-=======
     _admin_route: FALSE
 
 user_crud.registerToken:
@@ -237,4 +234,39 @@ user_crud.api_send_notification:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
->>>>>>> feature/bugfix
+
+# Cart Prodect Routing
+
+user_crud.cart_list:
+  path: '/admin/cart'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\CartAdminController::list'
+    _title: 'Cart Products'
+  requirements:
+    _permission: 'manage user crud'
+
+user_crud.cart_add:
+  path: '/admin/cart/add'
+  defaults:
+    _form: '\Drupal\user_crud\Form\CartAdminForm'
+    _title: 'Add Cart Product'
+  requirements:
+    _permission: 'manage user crud'
+
+user_crud.cart_edit:
+  path: '/admin/cart/edit/{id}'
+  defaults:
+    _form: '\Drupal\user_crud\Form\CartAdminEditForm'
+    _title: 'Edit Cart Product'
+  requirements:
+    _permission: 'manage user crud'
+    id: '\d+'
+
+user_crud.cart_delete:
+  path: '/admin/cart/delete/{id}'
+  defaults:
+    _form: '\Drupal\user_crud\Form\CartAdminDeleteForm'
+    _title: 'Delete Cart Product'
+  requirements:
+    _permission: 'manage user crud'
+    id: '\d+'

@@ -4,59 +4,150 @@
  * Implements hook_schema().
  */
 function user_crud_schema() {
+
   $schema['user_crud_cart'] = [
     'description' => 'Stores cart items for each user.',
     'fields' => [
+
       'id' => [
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+
       'uid' => [
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+
       'product_id' => [
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+
       'title' => [
         'type' => 'varchar',
         'length' => 255,
         'not null' => FALSE,
       ],
+
       'image' => [
         'type' => 'varchar',
         'length' => 500,
         'not null' => FALSE,
       ],
+
       'count' => [
         'type' => 'int',
         'not null' => TRUE,
         'default' => 1,
       ],
+
       'created' => [
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+
       'changed' => [
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
     ],
+
     'primary key' => ['id'],
+
     'indexes' => [
       'uid_cart' => ['uid'],
       'product_lookup' => ['product_id'],
     ],
   ];
 
+  /*
+   * Admin product table.
+   */
+  $schema['user_crud_products'] = [
+
+    'description' => 'Stores products managed by admin.',
+
+    'fields' => [
+
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+
+      'photos' => [
+        'type' => 'varchar',
+        'length' => 500,
+        'not null' => FALSE,
+      ],
+
+      'quantity' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'offer' => [
+        'type' => 'numeric',
+        'precision' => 5,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'amount' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'offer_price' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'created_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'updated_at' => [
+         'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+
+    'primary key' => ['id'],
+  ];
+
   return $schema;
 }
+
 
 /**
  * Creates the cart table on existing installs if it does not already exist.
@@ -67,4 +158,22 @@ function user_crud_update_10001() {
   }
 
   return t('Ensured user_crud_cart table exists.');
+}
+
+
+/**
+ * Creates the admin product table on existing installs.
+ */
+function user_crud_update_10002() {
+
+  if (!\Drupal::database()->schema()->tableExists('user_crud_products')) {
+
+    \Drupal::database()->schema()->createTable(
+      'user_crud_products',
+      user_crud_schema()['user_crud_products']
+    );
+
+  }
+
+  return t('Ensured user_crud_products table exists.');
 }

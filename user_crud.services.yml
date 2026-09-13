@@ -25,3 +25,8 @@ services:
   user_crud.notification_service:
     class: Drupal\user_crud\Service\UserCrudNotificationService
     arguments: ['@http_client']
+
+  user_crud.cart_admin_service:
+    class: Drupal\user_crud\Service\CartAdminService
+    arguments:
+      - '@database'
