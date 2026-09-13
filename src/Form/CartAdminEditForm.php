@@ -113,29 +113,55 @@ class CartAdminEditForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
 
+    $title = trim($form_state->getValue('title'));
+    $description = trim($form_state->getValue('description'));
+    $photos = trim($form_state->getValue('photos'));
+
     $quantity = $form_state->getValue('quantity');
     $amount = $form_state->getValue('amount');
     $offer = $form_state->getValue('offer');
 
-    if ($quantity < 0) {
-      $form_state->setErrorByName(
-        'quantity',
-        $this->t('Quantity cannot be negative.')
+    // Title validation.
+    if ($title === '') {
+      $form_state->setErrorByName('title', $this->t('Title cannot be empty.'));
+    }
+    elseif (mb_strlen($title) < 3) {
+      $form_state->setErrorByName('title',$this->t('Title must be at least 3 characters.'));
+    }
+
+    // Description validation.
+    if ($description === '') {
+      $form_state->setErrorByName('description',$this->t('Description cannot be empty.'));
+    }
+
+    // Photo URL validation.
+    if (!filter_var($photos, FILTER_VALIDATE_URL)) {
+      $form_state->setErrorByName('photos', $this->t('Please enter a valid photo URL.'));
+    }
+
+    // Quantity validation.
+    if (!is_numeric($quantity) || (int) $quantity != $quantity) {
+      $form_state->setErrorByName('quantity', $this->t('Quantity must be a whole number.'));
+    }
+    elseif ($quantity < 0) {
+      $form_state->setErrorByName('quantity', $this->t('Quantity cannot be negative.')
       );
     }
 
-    if ($amount < 0) {
-      $form_state->setErrorByName(
-        'amount',
-        $this->t('Amount cannot be negative.')
-      );
+    // Amount validation.
+    if (!is_numeric($amount)) {
+      $form_state->setErrorByName( 'amount', $this->t('Amount must be a valid number.'));
+    }
+    elseif ($amount < 0) {
+      $form_state->setErrorByName( 'amount', $this->t('Amount cannot be negative.') );
     }
 
-    if ($offer < 0 || $offer > 100) {
-      $form_state->setErrorByName(
-        'offer',
-        $this->t('Offer must be between 0 and 100.')
-      );
+    // Offer validation.
+    if (!is_numeric($offer)) {
+      $form_state->setErrorByName( 'offer', $this->t('Offer must be a valid number.'));
+    }
+    elseif ($offer < 0 || $offer > 100) {
+      $form_state->setErrorByName('offer', $this->t('Offer must be between 0 and 100.') );
     }
   }
 
