@@ -130,6 +130,8 @@ user_crud.userLogin:
   options:
     _admin_route: FALSE
 
+# Cart section CRUD Routes
+
 user_crud.getAppData:
   path: '/api/user-crud/get-apps-data'
   defaults:
@@ -182,6 +184,8 @@ user_crud.deleteCartAppData:
   options:
     _admin_route: FALSE
 
+# Token Verfication routes
+
 user_crud.registerToken:
   path: '/api/notifications/register-token'
   defaults:
@@ -203,6 +207,9 @@ user_crud.getRegisteredTokens:
     _access: 'TRUE'
   options:
     _admin_route: FALSE
+
+
+# Notification Routes 
 
 user_crud.notifications:
   path: '/admin/notifications'

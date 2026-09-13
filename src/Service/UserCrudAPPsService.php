@@ -1,36 +1,47 @@
 <?php
 
 namespace Drupal\user_crud\Service;
+use Drupal\Core\Database\Connection;
 
 class UserCrudAPPsService {
 
     private $httpClient;
+    protected $database;
 
-    public function __construct($httpClient) {
+    public function __construct($httpClient , Connection $database) {
         $this->httpClient = $httpClient;
+        $this->database = $database;
     }
 
 
-    // Get the Data from  DummyJson url for App frontend
-    public function getAppData($limit, $skip) {
-        try {
-            $response = $this->httpClient->get('https://dummyjson.com/products', [
-                'query' => [
-                    'limit' => $limit,
-                    'skip' => $skip,
-                ],
-            ]);
+    // Get the Data from  Database
+   public function getAppData() {
+    try {
+        $products = $this->database
+            ->select('user_crud_products', 'c')
+            ->fields('c')
+            ->orderBy('id', 'DESC')
+            ->execute()
+            ->fetchAll();
 
-            return json_decode($response->getBody()->getContents(), TRUE);
-        }
-        catch (\Throwable $exception) {
-            \Drupal::logger('user_crud')->error('getAppData failed: @message', [
-                '@message' => $exception->getMessage(),
-            ]);
+        $totalProducts = count($products);
 
-            return [];
-        }
+        return [
+            'products' => $products,
+            'total_products' => $totalProducts,
+        ];
     }
+    catch (\Throwable $exception) {
+        \Drupal::logger('user_crud')->error('getAppData failed: @message', [
+            '@message' => $exception->getMessage(),
+        ]);
+
+        return [
+            'products' => [],
+            'total_products' => 0,
+        ];
+    }
+}
 
     // Validate a Prodect for create and update cart function like prodect exites or not , stock like that.
     private function getValidatedProductData($id) {

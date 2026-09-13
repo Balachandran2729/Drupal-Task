@@ -46,14 +46,11 @@ class UserCrudAPPsController extends ControllerBase {
         if ($validationResponse instanceof JsonResponse) {
             return $validationResponse;
         }
-
-        $requestData = json_decode($request->getContent(), TRUE) ?: [];
-        $limit = $requestData['limit'] ?? 10;
-        $skip = $requestData['skip'] ?? 0;
+   
 
         \Drupal::logger('user_crud')->info('getAppData: Request data received with limit ' . $limit . ' and skip ' . $skip . '.');
 
-        $appData = $this->userCrudAPPsService->getAppData($limit, $skip);
+        $appData = $this->userCrudAPPsService->getAppData();
 
         \Drupal::logger('user_crud')->info('getAppData completed successfully.');
 

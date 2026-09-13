@@ -19,8 +19,10 @@ services:
       - { name: event_subscriber }
 
   user_crud.apps_service:
-    class: Drupal\user_crud\Service\UserCrudAppsService
-    arguments: ['@http_client']
+    class: Drupal\user_crud\Service\UserCrudAPPsService
+    arguments:
+      - '@http_client'
+      - '@database'
 
   user_crud.notification_service:
     class: Drupal\user_crud\Service\UserCrudNotificationService
