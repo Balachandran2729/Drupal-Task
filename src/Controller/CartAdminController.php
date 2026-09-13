@@ -54,10 +54,16 @@ class CartAdminController extends ControllerBase {
         'user_crud.cart_delete',
         ['id' => $product->id]
       )->toRenderable();
+      
+      $title_link = Link::createFromRoute(
+        $product->title,
+        'user_crud.cart_detail',
+        ['id' => $product->id]
+      )->toRenderable();
 
       $rows[] = [
         $product->id,
-        $product->title,
+        ['data' => $title_link],
         $product->quantity,
         $product->offer . '%',
         $product->amount,
@@ -99,6 +105,70 @@ class CartAdminController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  public function detail($id) {
+
+    $product = $this->cartService->getProduct($id);
+
+    if (!$product) {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+
+    $edit_link = Link::createFromRoute(
+      'Update',
+      'user_crud.cart_edit',
+      ['id' => $product->id]
+    )->toRenderable();
+
+    $delete_link = Link::createFromRoute(
+      'Delete',
+      'user_crud.cart_delete',
+      ['id' => $product->id]
+    )->toRenderable();
+
+    $photos = json_decode($product->photos, TRUE);
+
+    $photo_markup = '';
+
+    if (!empty($photos)) {
+      foreach ($photos as $photo) {
+        $photo_markup .= '<div style="margin-bottom: 10px;">';
+        $photo_markup .= '<img src="' . htmlspecialchars($photo) . '" width="200">';
+        $photo_markup .= '</div>';
+      }
+    }
+
+    return [
+      'actions' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'style' => 'display: flex; gap: 15px; margin-bottom: 20px;',
+        ],
+        'update' => $edit_link,
+        'delete' => $delete_link,
+      ],
+
+      'details' => [
+        '#type' => 'table',
+        '#header' => [
+          'Field',
+          'Value',
+        ],
+        '#rows' => [
+          ['ID', $product->id],
+          ['Title', $product->title],
+          ['Description', $product->description],
+          ['Photos', ['data' => [ '#markup' => $photo_markup, ],]],
+          ['Quantity', $product->quantity],
+          ['Offer', $product->offer . '%'],
+          ['Amount', $product->amount],
+          ['Offer Price', $product->offer_price],
+          ['Created', date('Y-m-d H:i:s', $product->created_at)],
+          ['Updated', date('Y-m-d H:i:s', $product->updated_at)],
+        ],
+      ],
+    ];
   }
 
 }

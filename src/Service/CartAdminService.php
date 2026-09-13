@@ -54,7 +54,7 @@ class CartAdminService {
 
     $amount = (float) $data['amount'];
     $offer = (float) $data['offer'];
-
+    
     // Calculate discounted price.
     $offer_price = $amount - (($amount * $offer) / 100);
 
@@ -63,7 +63,7 @@ class CartAdminService {
       ->fields([
         'title' => $data['title'],
         'description' => $data['description'],
-        'photos' => $data['photos'],
+        'photos' => json_encode($data['photos']),
         'quantity' => $data['quantity'],
         'offer' => $offer,
         'amount' => $amount,
@@ -90,7 +90,7 @@ class CartAdminService {
       ->fields([
         'title' => $data['title'],
         'description' => $data['description'],
-        'photos' => $data['photos'],
+        'photos' => json_encode($data['photos']),
         'quantity' => $data['quantity'],
         'offer' => $offer,
         'amount' => $amount,

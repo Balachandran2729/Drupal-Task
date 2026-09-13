@@ -46,9 +46,9 @@ class CartAdminForm extends FormBase {
     ];
 
     $form['photos'] = [
-      '#type' => 'textfield',
+      '#type' => 'textarea',
       '#title' => $this->t('Photos'),
-      '#description' => $this->t('Enter photo URL.'),
+      '#description' => $this->t('Enter one photo URL per line.'),
       '#required' => TRUE,
     ];
 
@@ -111,8 +111,21 @@ class CartAdminForm extends FormBase {
     }
 
     // Photo URL validation.
-    if (!filter_var($photos, FILTER_VALIDATE_URL)) { 
-      $form_state->setErrorByName('photos',$this->t('Please enter a valid photo URL.') );
+    $photo_urls = preg_split('/\r\n|\r|\n/', trim($photos));
+
+    $photo_urls = array_values(array_filter(array_map('trim', $photo_urls)));
+
+    if (empty($photo_urls)) {
+      $form_state->setErrorByName('photos', $this->t('Please enter at least one photo URL.'));
+    }
+    else {
+      foreach ($photo_urls as $url) {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+          $form_state->setErrorByName('photos',$this->t('Each photo must be a valid URL. Invalid URL: @url', ['@url' => $url,]));
+        
+          break;
+        }
+      }
     }
 
     // Quantity validation.
@@ -151,10 +164,14 @@ class CartAdminForm extends FormBase {
    */
   public function submitForm( array &$form, FormStateInterface $form_state ) {
 
+    $photos = preg_split('/\r\n|\r|\n/', trim($form_state->getValue('photos')));
+
+    $photos = array_values(array_filter( array_map('trim', $photos) ));
+
     $data = [
       'title' => trim($form_state->getValue('title')),
       'description' => trim($form_state->getValue('description')),
-      'photos' => trim($form_state->getValue('photos')),
+      'photos' => $photos,
       'quantity' => (int) $form_state->getValue('quantity'),
       'amount' => (float) $form_state->getValue('amount'),
       'offer' => (float) $form_state->getValue('offer'),

@@ -94,7 +94,6 @@ function user_crud_schema() {
 
       'photos' => [
         'type' => 'varchar',
-        'length' => 500,
         'not null' => FALSE,
       ],
 

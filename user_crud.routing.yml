@@ -235,7 +235,7 @@ user_crud.api_send_notification:
   options:
     _admin_route: FALSE
 
-# Cart Prodect Routing
+# Prodect Routing
 
 user_crud.cart_list:
   path: '/admin/cart'
@@ -270,3 +270,14 @@ user_crud.cart_delete:
   requirements:
     _permission: 'manage user crud'
     id: '\d+'
+
+user_crud.cart_detail:
+  path: '/admin/cart/{id}'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\CartAdminController::detail'
+    _title: 'Product Details'
+  requirements:
+    _permission: 'manage user crud'
+    id: '\d+'
+  options:
+    _admin_route: TRUE
