@@ -92,14 +92,35 @@ function user_crud_schema() {
         'not null' => FALSE,
       ],
 
+      'category' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+
+      'manufacturer' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+
       'photos' => [
-        'type' => 'varchar',
+        'type' => 'text',
         'not null' => FALSE,
       ],
 
       'quantity' => [
         'type' => 'int',
-        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'available' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'sales' => [
+        'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ],
@@ -175,4 +196,43 @@ function user_crud_update_10002() {
   }
 
   return t('Ensured user_crud_products table exists.');
+}
+
+function user_crud_update_10003() {
+
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->fieldExists('user_crud_products', 'category')) {
+    $schema->addField('user_crud_products', 'category', [
+      'type' => 'text',
+      'not null' => TRUE,
+    ]);
+  }
+
+  if (!$schema->fieldExists('user_crud_products', 'manufacturer')) {
+    $schema->addField('user_crud_products', 'manufacturer', [
+      'type' => 'text',
+      'not null' => FALSE,
+    ]);
+  }
+
+  if (!$schema->fieldExists('user_crud_products', 'available')) {
+    $schema->addField('user_crud_products', 'available', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ]);
+  }
+
+  if (!$schema->fieldExists('user_crud_products', 'sales')) {
+    $schema->addField('user_crud_products', 'sales', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ]);
+  }
+
+  return t('Added category, manufacturer, available and sales fields.');
 }

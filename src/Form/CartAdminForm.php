@@ -52,6 +52,18 @@ class CartAdminForm extends FormBase {
       '#required' => TRUE,
     ];
 
+    $form['category'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Category'),
+      '#required' => TRUE,
+    ];
+
+    $form['manufacturer'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Manufacturer'),
+      '#required' => FALSE,
+    ];
+
     $form['quantity'] = [
       '#type' => 'number',
       '#title' => $this->t('Quantity'),
@@ -96,6 +108,8 @@ class CartAdminForm extends FormBase {
     $quantity = $form_state->getValue('quantity');
     $amount = $form_state->getValue('amount');
     $offer = $form_state->getValue('offer');
+    $category = trim($form_state->getValue('category'));
+    $manufacturer = trim($form_state->getValue('manufacturer'));
 
     // Title validation.
     if ($title === '') {
@@ -108,6 +122,16 @@ class CartAdminForm extends FormBase {
     // Description validation.
     if ($description === '') {
       $form_state->setErrorByName('description', $this->t('Description cannot be empty.') );
+    }
+
+    // Category validation.
+    if ($category === '') {
+      $form_state->setErrorByName('category',$this->t('Category cannot be empty.'));
+    }
+
+    // manufacturer validation.
+    if ($manufacturer === '') {
+      $form_state->setErrorByName('manufacturer',$this->t('manufacturer cannot be empty.'));
     }
 
     // Photo URL validation.
@@ -171,6 +195,8 @@ class CartAdminForm extends FormBase {
     $data = [
       'title' => trim($form_state->getValue('title')),
       'description' => trim($form_state->getValue('description')),
+      'category' => trim($form_state->getValue('category')),
+      'manufacturer' => trim($form_state->getValue('manufacturer')),
       'photos' => $photos,
       'quantity' => (int) $form_state->getValue('quantity'),
       'amount' => (float) $form_state->getValue('amount'),

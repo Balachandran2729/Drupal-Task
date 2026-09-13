@@ -66,6 +66,20 @@ class CartAdminEditForm extends FormBase {
       '#required' => TRUE,
     ];
 
+    $form['category'] = [
+    '#type' => 'textfield',
+    '#title' => $this->t('Category'),
+    '#default_value' => $this->product->category,
+    '#required' => TRUE,
+  ];
+
+  $form['manufacturer'] = [
+    '#type' => 'textfield',
+    '#title' => $this->t('Manufacturer'),
+    '#default_value' => $this->product->manufacturer,
+    '#required' => FALSE,
+  ];
+
     $photos = json_decode($this->product->photos, TRUE);
 
     $form['photos'] = [
@@ -123,6 +137,8 @@ class CartAdminEditForm extends FormBase {
     $quantity = $form_state->getValue('quantity');
     $amount = $form_state->getValue('amount');
     $offer = $form_state->getValue('offer');
+    $category = trim($form_state->getValue('category'));
+    $manufacturer = trim($form_state->getValue('manufacturer'));
 
     // Title validation.
     if ($title === '') {
@@ -135,6 +151,16 @@ class CartAdminEditForm extends FormBase {
     // Description validation.
     if ($description === '') {
       $form_state->setErrorByName('description',$this->t('Description cannot be empty.'));
+    }
+
+    // Category validation.
+    if ($category === '') {
+      $form_state->setErrorByName('category',$this->t('Category cannot be empty.'));
+    }
+
+    // manufacturer validation.
+    if ($manufacturer === '') {
+      $form_state->setErrorByName('manufacturer',$this->t('manufacturer cannot be empty.'));
     }
 
     // Photo URL validation.
@@ -193,12 +219,14 @@ class CartAdminEditForm extends FormBase {
     $data = [
       'title' => trim($form_state->getValue('title')),
       'description' => trim($form_state->getValue('description')),
+      'category' => trim($form_state->getValue('category')),
+      'manufacturer' => trim($form_state->getValue('manufacturer')),
       'photos' => $photos,
       'quantity' => (int) $form_state->getValue('quantity'),
       'amount' => (float) $form_state->getValue('amount'),
       'offer' => (float) $form_state->getValue('offer'),
     ];
-
+    
     $this->cartService->updateProduct(
       $this->product->id,
       $data
