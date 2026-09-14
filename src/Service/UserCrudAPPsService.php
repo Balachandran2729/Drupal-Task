@@ -5,11 +5,9 @@ use Drupal\Core\Database\Connection;
 
 class UserCrudAPPsService {
 
-    private $httpClient;
     protected $database;
 
-    public function __construct($httpClient , Connection $database) {
-        $this->httpClient = $httpClient;
+    public function __construct(Connection $database) {
         $this->database = $database;
     }
 
@@ -46,10 +44,14 @@ class UserCrudAPPsService {
     // Validate a Prodect for create and update cart function like prodect exites or not , stock like that.
     private function getValidatedProductData($id) {
         try {
-            $response = $this->httpClient->get('https://dummyjson.com/products/' . $id);
-            $productData = json_decode($response->getBody()->getContents(), TRUE);
+            $productData = $this->database
+                ->select('user_crud_products', 'c')
+                ->fields('c')
+                ->condition('id', $id)
+                ->execute()
+                ->fetchAssoc();
 
-            if (!is_array($productData) || empty($productData) || !isset($productData['id'])) {
+            if (!$productData) {
                 throw new \RuntimeException('Product not found in database.');
             }
 
@@ -58,16 +60,14 @@ class UserCrudAPPsService {
         catch (\Throwable $exception) {
             $message = $exception->getMessage();
 
-            if (stripos($message, 'not found') !== FALSE || stripos($message, '404') !== FALSE) {
-                throw new \RuntimeException('Product not found in database.', 0, $exception);
-            }
+            \Drupal::logger('user_crud')->error( 'getValidatedProductData failed for product @id: @message',
+                [
+                    '@id' => $id,
+                    '@message' => $message,
+                ]
+            );
 
-            \Drupal::logger('user_crud')->error('getValidatedProductData failed for product @id: @message', [
-                '@id' => $id,
-                '@message' => $message,
-            ]);
-
-            throw new \RuntimeException('Unable to validate product in database.', 0, $exception);
+            throw new \RuntimeException( 'Unable to validate product in database.',0, $exception);
         }
     }
 
@@ -77,15 +77,17 @@ class UserCrudAPPsService {
 
         $productData = $this->getValidatedProductData($id);
 
-            $stock = $productData['stock'] ?? NULL;
+        $available = (int) ($productData['available'] ?? 0);
+        $sales = (int) ($productData['sales'] ?? 0);
+        $itemCount = (int) $count;
 
-            if (!is_numeric($stock)) {
-                throw new \RuntimeException('Product stock information is unavailable in database.');
-            }
+        if (!is_numeric($available)) {
+            throw new \RuntimeException('Product stock information is unavailable in database.');
+        }
 
-            if ((int) $count > (int) $stock) {
-                throw new \RuntimeException('Requested quantity exceeds available stock.');
-            }
+        if ($itemCount > $available) {
+            throw new \RuntimeException('Requested quantity exceeds available stock.');
+        }
 
         try {
                 $cartItem = [
@@ -120,6 +122,15 @@ class UserCrudAPPsService {
                         'created' => $now,
                         'changed' => $now,
                     ])
+                    ->execute();
+
+                $db->update('user_crud_products')
+                    ->fields([
+                        'available' => $available - $itemCount,
+                        'sales' => $sales + $itemCount,
+                        'updated_at' => $now,
+                    ])
+                    ->condition('id', (int) $id)
                     ->execute();
             }
 
@@ -172,14 +183,12 @@ class UserCrudAPPsService {
 
         $productData = $this->getValidatedProductData($id);
 
-        $stock = $productData['stock'] ?? NULL;
+        $available = (int) ($productData['available'] ?? 0);
+        $sales = (int) ($productData['sales'] ?? 0);
+        $newCount = (int) $count;
 
-        if (!is_numeric($stock)) {
+        if (!is_numeric($available)) {
             throw new \RuntimeException('Product stock information is unavailable in database.');
-        }
-
-        if ((int) $count > (int) $stock) {
-            throw new \RuntimeException('Requested quantity exceeds available stock.');
         }
 
         try {
@@ -198,12 +207,41 @@ class UserCrudAPPsService {
                 return NULL;
             }
 
+            $existingCount = (int) ($existingItem['count'] ?? 0);
+            $countDelta = $newCount - $existingCount;
+            $updatedAt = time();
+
+            if ($countDelta > 0 && $countDelta > $available) {
+                throw new \RuntimeException('Requested quantity exceeds available stock.');
+            }
+
+            $updatedAvailable = $available;
+            $updatedSales = $sales;
+
+            if ($countDelta > 0) {
+                $updatedAvailable -= $countDelta;
+                $updatedSales += $countDelta;
+            }
+            else {
+                $updatedAvailable += abs($countDelta);
+                $updatedSales -= abs($countDelta);
+            }
+
             $db->update('user_crud_cart')
                 ->fields([
-                    'count' => (int) $count,
-                    'changed' => time(),
+                    'count' => $newCount,
+                    'changed' => $updatedAt,
                 ])
                 ->condition('id', $existingItem['id'])
+                ->execute();
+
+            $db->update('user_crud_products')
+                ->fields([
+                    'available' => $updatedAvailable,
+                    'sales' => $updatedSales,
+                    'updated_at' => $updatedAt,
+                ])
+                ->condition('id', (int) $id)
                 ->execute();
 
             return [

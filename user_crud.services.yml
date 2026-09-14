@@ -20,9 +20,7 @@ services:
 
   user_crud.apps_service:
     class: Drupal\user_crud\Service\UserCrudAPPsService
-    arguments:
-      - '@http_client'
-      - '@database'
+    arguments: ['@database']
 
   user_crud.notification_service:
     class: Drupal\user_crud\Service\UserCrudNotificationService
