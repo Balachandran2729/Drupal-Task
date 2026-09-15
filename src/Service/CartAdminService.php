@@ -12,10 +12,7 @@ class CartAdminService {
    * @var \Drupal\Core\Database\Connection
    */
   protected $database;
-
-  /**
-   * Constructor.
-   */
+  
   public function __construct(Connection $database) {
     $this->database = $database;
   }
@@ -24,25 +21,49 @@ class CartAdminService {
    * Get all cart products.
    */
   public function getAllProducts() {
-    return $this->database
-      ->select('user_crud_products', 'c')
-      ->fields('c')
-      ->orderBy('id', 'DESC')
-      ->execute()
-      ->fetchAll();
+    try {
+      return $this->database
+        ->select('user_crud_products', 'c')
+        ->fields('c')
+        ->orderBy('id', 'DESC')
+        ->execute()
+        ->fetchAll();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to get all products: @message',
+        [
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      return [];
+    }
   }
 
   /**
    * Get one cart product.
    */
   public function getProduct($id) {
+    try {
+      return $this->database
+        ->select('user_crud_products', 'c')
+        ->fields('c')
+        ->condition('id', $id)
+        ->execute()
+        ->fetchObject();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to get product @id: @message',
+        [
+          '@id' => $id,
+          '@message' => $e->getMessage(),
+        ]
+      );
 
-    return $this->database
-      ->select('user_crud_products', 'c')
-      ->fields('c')
-      ->condition('id', $id)
-      ->execute()
-      ->fetchObject();
+      return NULL;
+    }
   }
 
   /**
@@ -50,36 +71,48 @@ class CartAdminService {
    */
   public function addProduct($data) {
 
-    $now = time();
+    try {
+      $now = time();
 
-    $quantity = (int) $data['quantity'];
-    $sales = 0;
+      $quantity = (int) $data['quantity'];
+      $sales = 0;
 
-    $available = $quantity - $sales;
+      $available = $quantity - $sales;
 
-    $amount = (float) $data['amount'];
-    $offer = (float) $data['offer'];
+      $amount = (float) $data['amount'];
+      $offer = (float) $data['offer'];
 
-    $offer_price = $amount - (($amount * $offer) / 100);
+      $offer_price = $amount - (($amount * $offer) / 100);
 
-    return $this->database
-      ->insert('user_crud_products')
-      ->fields([
-        'title' => $data['title'],
-        'description' => $data['description'],
-        'category' => $data['category'],
-        'manufacturer' => $data['manufacturer'],
-        'photos' => json_encode($data['photos']),
-        'quantity' => $quantity,
-        'available' => $available,
-        'sales' => $sales,
-        'offer' => $offer,
-        'amount' => $amount,
-        'offer_price' => $offer_price,
-        'created_at' => $now,
-        'updated_at' => $now,
-      ])
-      ->execute();
+      return $this->database
+        ->insert('user_crud_products')
+        ->fields([
+          'title' => $data['title'],
+          'description' => $data['description'],
+          'category' => $data['category'],
+          'manufacturer' => $data['manufacturer'],
+          'photos' => json_encode($data['photos']),
+          'quantity' => $quantity,
+          'available' => $available,
+          'sales' => $sales,
+          'offer' => $offer,
+          'amount' => $amount,
+          'offer_price' => $offer_price,
+          'created_at' => $now,
+          'updated_at' => $now,
+        ])
+        ->execute();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to add product: @message',
+        [
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      throw new \RuntimeException('Unable to add product.' );
+    }
   }
 
   /**
@@ -89,54 +122,85 @@ class CartAdminService {
 
     $product = $this->getProduct($id);
 
-    if (!$product) {
-      throw new \RuntimeException('Product not found.');
+      if (!$product) {
+        throw new \RuntimeException('Product not found.');
+      }
+
+      $quantity = (int) $data['quantity'];
+      $sales = (int) $product->sales;
+
+      if ($sales > $quantity) {
+        throw new \RuntimeException(
+          'Quantity cannot be less than the number of products already sold.'
+        );
+      }
+
+      $available = $quantity - $sales;
+
+      $amount = (float) $data['amount'];
+      $offer = (float) $data['offer'];
+
+      $offer_price = $amount - (($amount * $offer) / 100);
+    try {
+      
+      return $this->database
+        ->update('user_crud_products')
+        ->fields([
+          'title' => $data['title'],
+          'description' => $data['description'],
+          'category' => $data['category'],
+          'manufacturer' => $data['manufacturer'],
+          'photos' => json_encode($data['photos']),
+          'quantity' => $quantity,
+          'available' => $available,
+          'offer' => $offer,
+          'amount' => $amount,
+          'offer_price' => $offer_price,
+          'updated_at' => time(),
+        ])
+        ->condition('id', $id)
+        ->execute();
     }
+    catch (\RuntimeException $e) {
 
-    $quantity = (int) $data['quantity'];
-    $sales = (int) $product->sales;
-
-    if ($sales > $quantity) {
-      throw new \RuntimeException(
-        'Quantity cannot be less than the number of products already sold.'
+      throw $e;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to update product @id: @message',
+        [
+          '@id' => $id,
+          '@message' => $e->getMessage(),
+        ]
       );
+
+      throw new \RuntimeException( 'Unable to update product.' );
     }
-
-    $available = $quantity - $sales;
-
-    $amount = (float) $data['amount'];
-    $offer = (float) $data['offer'];
-
-   
-    $offer_price = $amount - (($amount * $offer) / 100);
-
-    return $this->database
-      ->update('user_crud_products')
-      ->fields([
-        'title' => $data['title'],
-        'description' => $data['description'],
-        'category' => $data['category'],
-        'manufacturer' => $data['manufacturer'],
-        'photos' => json_encode($data['photos']),
-        'quantity' => $quantity,
-        'available' => $available,
-        'offer' => $offer,
-        'amount' => $amount,
-        'offer_price' => $offer_price,
-        'updated_at' => time(),
-      ])
-      ->condition('id', $id)
-      ->execute();
   }
+
   /**
    * Delete cart product.
    */
   public function deleteProduct($id) {
+    try {
+      return $this->database
+        ->delete('user_crud_products')
+        ->condition('id', $id)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to delete product @id: @message',
+        [
+          '@id' => $id,
+          '@message' => $e->getMessage(),
+        ]
+      );
 
-    return $this->database
-      ->delete('user_crud_products')
-      ->condition('id', $id)
-      ->execute();
+      throw new \RuntimeException(
+        'Unable to delete product.'
+      );
+    }
   }
 
 }
