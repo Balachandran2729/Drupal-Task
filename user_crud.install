@@ -45,6 +45,30 @@ function user_crud_schema() {
         'default' => 1,
       ],
 
+      'offer' => [
+        'type' => 'numeric',
+        'precision' => 5,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'offer_price' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'amount' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
       'created' => [
         'type' => 'int',
         'unsigned' => TRUE,
@@ -207,6 +231,101 @@ function user_crud_schema() {
     'primary key' => ['id'],
   ];
 
+  $schema['user_crud_purchase'] = [
+
+    'description' => 'Stores completed purchase records for each user.',
+
+    'fields' => [
+
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+
+      'product_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+
+      'image' => [
+        'type' => 'varchar',
+        'length' => 500,
+        'not null' => FALSE,
+      ],
+
+      'count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+
+      'offer' => [
+        'type' => 'numeric',
+        'precision' => 5,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'offer_price' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'amount' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'total_amount' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+
+      'changed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+
+    'primary key' => ['id'],
+
+    'indexes' => [
+      'uid_purchase' => ['uid'],
+      'product_lookup' => ['product_id'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -252,4 +371,35 @@ function user_crud_update_10003() {
   }
 
   return t('Ensured user_crud_categories table exists.');
+}
+
+
+/**
+ * Adds offer/offer_price/amount columns to the cart table.
+ */
+function user_crud_update_10008() {
+  $schema = \Drupal::database()->schema();
+  $fields = user_crud_schema()['user_crud_cart']['fields'];
+
+  foreach (['offer', 'offer_price', 'amount'] as $field) {
+    if (!$schema->fieldExists('user_crud_cart', $field)) {
+      $schema->addField('user_crud_cart', $field, $fields[$field]);
+    }
+  }
+
+  return t('Added offer, offer_price and amount fields to user_crud_cart.');
+}
+
+/**
+ * Creates the purchase table on existing installs.
+ */
+function user_crud_update_10007() {
+  if (!\Drupal::database()->schema()->tableExists('user_crud_purchase')) {
+    \Drupal::database()->schema()->createTable(
+      'user_crud_purchase',
+      user_crud_schema()['user_crud_purchase']
+    );
+  }
+
+  return t('Ensured user_crud_purchase table exists.');
 }

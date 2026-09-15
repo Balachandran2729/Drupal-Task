@@ -305,4 +305,59 @@ class UserCrudAPPsController extends ControllerBase {
     }
 
 
+
+    //Purchase Section
+
+    public function purchaseAppData(Request $request) {
+
+        \Drupal::logger('user_crud')->info('purchaseAppData called.');
+
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'purchaseAppData');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
+        }
+
+        $validatedUser = $this->appValidationService->validateAuthenticatedUser($request, 'purchaseAppData');
+        if ($validatedUser instanceof JsonResponse) {
+            return $validatedUser;
+        }
+
+        $uid = $validatedUser['uid'];
+
+        $requestData = json_decode($request->getContent(), TRUE) ?: [];
+        $items = $requestData['items'] ?? [];
+
+        \Drupal::logger('user_crud')->info('purchaseAppData: Request data received: @request', [
+            '@request' => json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        ]);
+
+        if (!is_array($items) || empty($items)) {
+            \Drupal::logger('user_crud')->warning('purchaseAppData failed: No items provided.');
+            return new JsonResponse(['error' => 'Please provide at least one item to purchase.'], 400);
+        }
+
+        try {
+            $result = $this->userCrudAPPsService->createPurchase($uid, $items);
+
+            if (empty($result['success'])) {
+                return new JsonResponse([
+                    'message' => 'Purchase could not be completed.',
+                    'errors' => $result['errors'] ?? [
+                        ['error' => 'The requested items are not available.'],
+                    ],
+                ], 400);
+            }
+
+            \Drupal::logger('user_crud')->info('purchaseAppData completed successfully.');
+
+            return new JsonResponse([
+                'message' => 'Purchase completed successfully.',
+                'purchased' => $result['purchased'],
+            ], 201);
+
+        } catch (\Throwable $e) {
+            \Drupal::logger('user_crud')->error('purchaseAppData failed: @message', ['@message' => $e->getMessage()]);
+            return new JsonResponse(['error' => 'Something went wrong while processing the purchase.'], 500);
+        }
+    }
 }

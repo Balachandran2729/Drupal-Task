@@ -298,3 +298,13 @@ user_crud.category_add:
     _title: 'Add Category'
   requirements:
     _permission: 'manage user crud'
+
+
+# purchase
+user_crud.purchase_app_data:
+  path: '/api/purchase'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::purchaseAppData'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'

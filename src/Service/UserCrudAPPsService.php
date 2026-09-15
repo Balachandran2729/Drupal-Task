@@ -73,68 +73,62 @@ class UserCrudAPPsService {
 
 
     // create a cart 
-    public function createCartAppData($uid, $id, $title, $image ,$count) {
+    public function createCartAppData($uid, $id, $title, $image, $count) {
 
         $productData = $this->getValidatedProductData($id);
 
         $available = (int) ($productData['available'] ?? 0);
-        $sales = (int) ($productData['sales'] ?? 0);
         $itemCount = (int) $count;
-
-        if (!is_numeric($available)) {
-            throw new \RuntimeException('Product stock information is unavailable in database.');
-        }
 
         if ($itemCount > $available) {
             throw new \RuntimeException('Requested quantity exceeds available stock.');
         }
 
+        $offer = (float) ($productData['offer'] ?? 0);
+        $amount = (float) ($productData['amount'] ?? 0);
+        $offerPrice = (float) ($productData['offer_price'] ?? 0);
+
         try {
-                $cartItem = [
-                    'id' => (int) $id,
-                    'title' => $title,
-                    'image' => $image,
-                    'count' => (int) $count,
-                ];
+            $db = \Drupal::database();
 
-                $db = \Drupal::database();
-                $existingItem = $db->select('user_crud_cart', 'c')
-                    ->fields('c', ['id'])
-                    ->condition('c.uid', (int) $uid)
-                    ->condition('c.product_id', (int) $id)
-                    ->range(0, 1)
-                    ->execute()
-                    ->fetchAssoc();
-
-                $now = time();
+            $existingItem = $db->select('user_crud_cart', 'c')
+                ->fields('c', ['id'])
+                ->condition('c.uid', (int) $uid)
+                ->condition('c.product_id', (int) $id)
+                ->range(0, 1)
+                ->execute()
+                ->fetchAssoc();
 
             if ($existingItem) {
                 throw new \RuntimeException('Product is already in the cart.');
             }
-            else {
-                $db->insert('user_crud_cart')
-                    ->fields([
-                        'uid' => (int) $uid,
-                        'product_id' => (int) $id,
-                        'title' => $title,
-                        'image' => $image,
-                        'count' => (int) $count,
-                        'created' => $now,
-                        'changed' => $now,
-                    ])
-                    ->execute();
 
-                $db->update('user_crud_products')
-                    ->fields([
-                        'available' => $available - $itemCount,
-                        'sales' => $sales + $itemCount,
-                        'updated_at' => $now,
-                    ])
-                    ->condition('id', (int) $id)
-                    ->execute();
-            }
+            $now = time();
 
-            return $cartItem;
+            $db->insert('user_crud_cart')
+                ->fields([
+                    'uid' => (int) $uid,
+                    'product_id' => (int) $id,
+                    'title' => $title,
+                    'image' => $image,
+                    'count' => $itemCount,
+                    'offer' => $offer,
+                    'offer_price' => $offerPrice,
+                    'amount' => $amount,
+                    'created' => $now,
+                    'changed' => $now,
+                ])
+                ->execute();
+
+            return [
+                'id' => (int) $id,
+                'title' => $title,
+                'image' => $image,
+                'count' => $itemCount,
+                'offer' => $offer,
+                'offer_price' => $offerPrice,
+                'amount' => $amount,
+            ];
         }
         catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('createCartAppData failed: @message', [
@@ -149,23 +143,81 @@ class UserCrudAPPsService {
     // Get a cart for database
     public function getCartAppData($uid) {
         try {
-            $query = \Drupal::database()->select('user_crud_cart', 'c');
+            $db = \Drupal::database();
+
+            $query = $db->select('user_crud_cart', 'c');
             $query->fields('c');
             $query->condition('c.uid', (int) $uid);
             $query->orderBy('c.id');
 
-            $cart = [];
+            $rows = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
 
-            foreach ($query->execute()->fetchAll(\PDO::FETCH_ASSOC) as $item) {
-                $cart[] = [
-                    'id' => (int) ($item['product_id'] ?? 0),
+            $products = [];
+            $total = 0;
+            $totalAmount = 0.0;
+            $now = time();
+
+            foreach ($rows as $item) {
+                $productId = (int) ($item['product_id'] ?? 0);
+                $count = (int) ($item['count'] ?? 1);
+
+                $offer = (float) ($item['offer'] ?? 0);
+                $amount = (float) ($item['amount'] ?? 0);
+                $offerPrice = (float) ($item['offer_price'] ?? 0);
+
+                try {
+                    $productData = $this->getValidatedProductData($productId);
+                    $freshOffer = (float) ($productData['offer'] ?? 0);
+                    $freshAmount = (float) ($productData['amount'] ?? 0);
+                    $freshOfferPrice = (float) ($productData['offer_price'] ?? 0);
+
+                    if ($freshOffer !== $offer || $freshAmount !== $amount || $freshOfferPrice !== $offerPrice) {
+                        $db->update('user_crud_cart')
+                            ->fields([
+                                'offer' => $freshOffer,
+                                'offer_price' => $freshOfferPrice,
+                                'amount' => $freshAmount,
+                                'changed' => $now,
+                            ])
+                            ->condition('id', $item['id'])
+                            ->execute();
+                    }
+
+                    $offer = $freshOffer;
+                    $amount = $freshAmount;
+                    $offerPrice = $freshOfferPrice;
+                }
+                catch (\Throwable $exception) {
+                    \Drupal::logger('user_crud')->warning(
+                        'getCartAppData: could not refresh product @id: @message',
+                        ['@id' => $productId, '@message' => $exception->getMessage()]
+                    );
+                }
+
+                $lineTotal = round($offerPrice * $count, 2);
+
+                $products[] = [
+                    'id' => $productId,
                     'title' => $item['title'] ?? '',
                     'image' => $item['image'] ?? '',
-                    'count' => (int) ($item['count'] ?? 1),
+                    'count' => $count,
+                    'offer' => $offer,
+                    'offer_price' => $offerPrice,
+                    'Real_price' => $amount,
+                    'Total amount' => round($count * $offerPrice , 2)
                 ];
+
+                $cartcount += $count;
+                $total = count($products);
+                $totalAmount += $lineTotal;
             }
 
-            return $cart;
+            return [
+                'products' => $products,
+                'total prodects' => $total,
+                'total prodects Items' => $cartcount,
+                'total_amount' => round($totalAmount, 2),
+            ];
         }
         catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('getCartAppData failed: @message', [
@@ -177,22 +229,24 @@ class UserCrudAPPsService {
     }
 
 
+
     // Update a cart
     public function updateCartAppData($uid, $id, $count) {
-
 
         $productData = $this->getValidatedProductData($id);
 
         $available = (int) ($productData['available'] ?? 0);
-        $sales = (int) ($productData['sales'] ?? 0);
         $newCount = (int) $count;
 
-        if (!is_numeric($available)) {
-            throw new \RuntimeException('Product stock information is unavailable in database.');
+        if ($newCount > $available) {
+            throw new \RuntimeException('Requested quantity exceeds available stock.');
         }
 
-        try {
+        $offer = (float) ($productData['offer'] ?? 0);
+        $amount = (float) ($productData['amount'] ?? 0);
+        $offerPrice = (float) ($productData['offer_price'] ?? 0);
 
+        try {
             $db = \Drupal::database();
 
             $existingItem = $db->select('user_crud_cart', 'c')
@@ -207,48 +261,23 @@ class UserCrudAPPsService {
                 return NULL;
             }
 
-            $existingCount = (int) ($existingItem['count'] ?? 0);
-            $countDelta = $newCount - $existingCount;
             $updatedAt = time();
-
-            if ($countDelta > 0 && $countDelta > $available) {
-                throw new \RuntimeException('Requested quantity exceeds available stock.');
-            }
-
-            $updatedAvailable = $available;
-            $updatedSales = $sales;
-
-            if ($countDelta > 0) {
-                $updatedAvailable -= $countDelta;
-                $updatedSales += $countDelta;
-            }
-            else {
-                $updatedAvailable += abs($countDelta);
-                $updatedSales -= abs($countDelta);
-            }
 
             $db->update('user_crud_cart')
                 ->fields([
                     'count' => $newCount,
+                    'offer' => $offer,
+                    'offer_price' => $offerPrice,
+                    'amount' => $amount,
                     'changed' => $updatedAt,
                 ])
                 ->condition('id', $existingItem['id'])
                 ->execute();
 
-            $db->update('user_crud_products')
-                ->fields([
-                    'available' => $updatedAvailable,
-                    'sales' => $updatedSales,
-                    'updated_at' => $updatedAt,
-                ])
-                ->condition('id', (int) $id)
-                ->execute();
-
             return [
                 'id' => (int) ($existingItem['product_id'] ?? $id),
                 'title' => $existingItem['title'] ?? '',
-                'image' => $existingItem['image'] ?? '',
-                'count' => (int) $count,
+                'count' => $newCount,
             ];
         }
         catch (\Throwable $exception) {
@@ -341,6 +370,142 @@ class UserCrudAPPsService {
             ]);
 
             throw new \RuntimeException('Unable to load registered tokens from storage.', 0, $exception);
+        }
+    }
+
+
+    // Purchase validation and function
+    public function validateCartAvailability(array $cartItems) {
+        $errors = [];
+
+        foreach ($cartItems as $cartItem) {
+            $id = (int) ($cartItem['id'] ?? 0);
+            $count = (int) ($cartItem['count'] ?? 0);
+
+            if ($count <= 0) {
+                $errors[] = [
+                    'id' => $id,
+                    'requested' => $count,
+                    'error' => 'Purchase quantity must be greater than zero.',
+                ];
+                continue;
+            }
+
+            try {
+                $productData = $this->getValidatedProductData($id);
+            }
+            catch (\Throwable $exception) {
+                $errors[] = [
+                    'id' => $id,
+                    'error' => 'Product not found.',
+                ];
+                continue;
+            }
+
+            $available = (int) ($productData['available'] ?? 0);
+
+            if ($count > $available) {
+                $errors[] = [
+                    'id' => $id,
+                    'title' => $productData['title'] ?? '',
+                    'requested' => $count,
+                    'available' => $available,
+                    'error' => 'Requested quantity exceeds available stock.',
+                ];
+            }
+        }
+
+        return $errors;
+    }
+
+
+    // Purchase: validates, then atomically decrements stock and records the order.
+    public function createPurchase($uid, array $cartItems) {
+
+        $errors = $this->validateCartAvailability($cartItems);
+
+        if (!empty($errors)) {
+            return ['success' => FALSE, 'errors' => $errors];
+        }
+
+        $db = \Drupal::database();
+        $transaction = $db->startTransaction();
+        $purchased = [];
+
+        try {
+            foreach ($cartItems as $cartItem) {
+                $id = (int) ($cartItem['id'] ?? 0);
+                $count = (int) ($cartItem['count'] ?? 0);
+
+                $productData = $this->getValidatedProductData($id);
+                $offer = (float) ($productData['offer'] ?? 0);
+                $amount = (float) ($productData['amount'] ?? 0);
+                $offerPrice = (float) ($productData['offer_price'] ?? 0);
+                $now = time();
+
+            
+                $updated = $db->update('user_crud_products')
+                    ->expression('available', 'available - :count', [':count' => $count])
+                    ->expression('sales', 'sales + :count', [':count' => $count])
+                    ->fields(['updated_at' => $now])
+                    ->condition('id', $id)
+                    ->condition('available', $count, '>=')
+                    ->execute();
+
+                if (!$updated) {
+                    throw new \RuntimeException(
+                        'Requested quantity for "' . ($productData['title'] ?? $id) . '" exceeds available stock.'
+                    );
+                }
+
+                $totalAmount = round($offerPrice * $count, 2);
+
+                $db->insert('user_crud_purchase')
+                    ->fields([
+                        'uid' => (int) $uid,
+                        'product_id' => $id,
+                        'title' => $productData['title'] ?? ($productData['title'] ?? ''),
+                        'image' => $cartItem['image'] ?? ($productData['photos'] ?? ''),
+                        'count' => $count,
+                        'offer' => $offer,
+                        'offer_price' => $offerPrice,
+                        'amount' => $amount,
+                        'total_amount' => $totalAmount,
+                        'created' => $now,
+                        'changed' => $now,
+                    ])
+                    ->execute();
+
+                // Purchased items come out of the cart.
+                // $db->delete('user_crud_cart')
+                //     ->condition('uid', (int) $uid)
+                //     ->condition('product_id', $id)
+                //     ->execute();
+
+                $purchased[] = [
+                    'id' => $id,
+                    'title' => $productData['title'] ?? '',
+                    'count' => $count,
+                    'offer' => $offer,
+                    'offer_price' => $offerPrice,
+                    'amount' => $amount,
+                    'total_amount' => $totalAmount,
+                ];
+            }
+
+            return ['success' => TRUE, 'purchased' => $purchased];
+        }
+        catch (\Throwable $exception) {
+            $transaction->rollBack();
+
+            \Drupal::logger('user_crud')->error('createPurchase failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
+
+            return [
+                'success' => FALSE,
+                'errors' => [['error' => $exception->getMessage()]],
+            ];
         }
     }
 
