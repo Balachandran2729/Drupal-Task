@@ -30,3 +30,8 @@ services:
     class: Drupal\user_crud\Service\CartAdminService
     arguments:
       - '@database'
+
+  user_crud.cloudinary:
+    class: Drupal\user_crud\Service\CloudinaryService
+    arguments:
+      - '@config.factory'

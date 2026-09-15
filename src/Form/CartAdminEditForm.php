@@ -4,7 +4,9 @@ namespace Drupal\user_crud\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\file\Entity\File;
 use Drupal\user_crud\Service\CartAdminService;
+use Drupal\user_crud\Service\CloudinaryService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -12,39 +14,29 @@ class CartAdminEditForm extends FormBase {
 
   protected $cartService;
 
+  protected $cloudinaryService;
+
   protected $product;
 
-  /**
-   * Constructor.
-   */
-  public function __construct(CartAdminService $cart_service) {
+  public function __construct( CartAdminService $cart_service, CloudinaryService $cloudinary_service) {
     $this->cartService = $cart_service;
+    $this->cloudinaryService = $cloudinary_service;
   }
 
-  /**
-   * Create form from container.
-   */
+
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('user_crud.cart_admin_service')
+      $container->get('user_crud.cart_admin_service'),
+      $container->get('user_crud.cloudinary')
     );
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public function getFormId() {
     return 'cart_admin_edit_form';
   }
 
-  /**
-   * Build edit form.
-   */
-  public function buildForm(
-    array $form,
-    FormStateInterface $form_state,
-    $id = NULL
-  ) {
+
+  public function buildForm( array $form, FormStateInterface $form_state, $id = NULL ) {
 
     $this->product = $this->cartService->getProduct($id);
 
@@ -67,27 +59,83 @@ class CartAdminEditForm extends FormBase {
     ];
 
     $form['category'] = [
-    '#type' => 'textfield',
-    '#title' => $this->t('Category'),
-    '#default_value' => $this->product->category,
-    '#required' => TRUE,
-  ];
+      '#type' => 'textfield',
+      '#title' => $this->t('Category'),
+      '#default_value' => $this->product->category,
+      '#required' => TRUE,
+    ];
 
-  $form['manufacturer'] = [
-    '#type' => 'textfield',
-    '#title' => $this->t('Manufacturer'),
-    '#default_value' => $this->product->manufacturer,
-    '#required' => FALSE,
-  ];
+    $form['manufacturer'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Manufacturer'),
+      '#default_value' => $this->product->manufacturer,
+      '#required' => FALSE,
+    ];
+
 
     $photos = json_decode($this->product->photos, TRUE);
 
-    $form['photos'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Photos'),
-      '#default_value' => implode("\n", $photos ?: []),
-      '#description' => $this->t('Enter one photo URL per line.'),
-      '#required' => TRUE,
+    if (!is_array($photos)) {
+      $photos = [];
+    }
+
+    $form['existing_photos'] = [
+      '#type' => 'container',
+      '#tree' => TRUE,
+    ];
+
+    if (!empty($photos)) {
+
+      foreach ($photos as $index => $photo_url) {
+
+        $form['existing_photos'][$index] = [
+          '#type' => 'container',
+        ];
+
+        $form['existing_photos'][$index]['url'] = [
+          '#type' => 'hidden',
+          '#value' => $photo_url,
+        ];
+
+        $form['existing_photos'][$index]['remove'] = [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Remove this photo'),
+        ];
+
+        $form['existing_photos'][$index]['preview'] = [
+          '#type' => 'markup',
+          '#markup' => '
+            <div style="margin-bottom: 15px;">
+              <img
+                src="' . htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8') . '"
+                style="width: 120px; height: 120px; object-fit: cover; border: 1px solid #ccc; border-radius: 5px;"
+              >
+              <div style="margin-top: 5px; word-break: break-all;">
+                ' . htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8') . '
+              </div>
+            </div>
+          ',
+        ];
+      }
+    }
+    else {
+      $form['existing_photos']['empty'] = [
+        '#markup' => '<p>No existing photos.</p>',
+      ];
+    }
+
+    $form['new_photos'] = [
+      '#type' => 'managed_file',
+      '#title' => $this->t('Add New Photos'),
+      '#upload_location' => 'temporary://product-images',
+      '#multiple' => TRUE,
+      '#upload_validators' => [
+        'file_validate_extensions' => ['jpg jpeg png webp'],
+        'file_validate_size' => [5 * 1024 * 1024],
+      ],
+      '#description' => $this->t(
+        'Select one or more new images. Maximum size: 5 MB per image.'
+      ),
     ];
 
     $form['quantity'] = [
@@ -125,96 +173,221 @@ class CartAdminEditForm extends FormBase {
     return $form;
   }
 
-  /**
-   * Validate form.
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
+
+  public function validateForm( array &$form, FormStateInterface $form_state ) {
 
     $title = trim($form_state->getValue('title'));
     $description = trim($form_state->getValue('description'));
-    $photos = trim($form_state->getValue('photos'));
-
     $quantity = $form_state->getValue('quantity');
     $amount = $form_state->getValue('amount');
     $offer = $form_state->getValue('offer');
     $category = trim($form_state->getValue('category'));
     $manufacturer = trim($form_state->getValue('manufacturer'));
 
-    // Title validation.
+    /*
+     * Title validation.
+     */
     if ($title === '') {
-      $form_state->setErrorByName('title', $this->t('Title cannot be empty.'));
+      $form_state->setErrorByName(
+        'title',
+        $this->t('Title cannot be empty.')
+      );
     }
     elseif (mb_strlen($title) < 3) {
-      $form_state->setErrorByName('title',$this->t('Title must be at least 3 characters.'));
+      $form_state->setErrorByName(
+        'title',
+        $this->t('Title must be at least 3 characters.')
+      );
     }
 
-    // Description validation.
+    /*
+     * Description validation.
+     */
     if ($description === '') {
-      $form_state->setErrorByName('description',$this->t('Description cannot be empty.'));
+      $form_state->setErrorByName(
+        'description',
+        $this->t('Description cannot be empty.')
+      );
     }
 
-    // Category validation.
+    /*
+     * Category validation.
+     */
     if ($category === '') {
-      $form_state->setErrorByName('category',$this->t('Category cannot be empty.'));
+      $form_state->setErrorByName(
+        'category',
+        $this->t('Category cannot be empty.')
+      );
     }
 
-    // manufacturer validation.
+    /*
+     * Manufacturer validation.
+     */
     if ($manufacturer === '') {
-      $form_state->setErrorByName('manufacturer',$this->t('manufacturer cannot be empty.'));
+      $form_state->setErrorByName(
+        'manufacturer',
+        $this->t('Manufacturer cannot be empty.')
+      );
     }
 
-    // Photo URL validation.
-    $photo_urls = preg_split('/\r\n|\r|\n/', trim($photos));
+    /*
+     * Photo validation.
+     *
+     * We check whether at least one existing photo remains
+     * OR a new photo has been selected.
+     */
+    $existing_photos = $form_state->getValue('existing_photos', []);
+    $new_photos = $form_state->getValue('new_photos', []);
 
-    $photo_urls = array_values(array_filter(array_map('trim', $photo_urls)));
+    $remaining_existing_photos = [];
 
-    if (empty($photo_urls)) {
-      $form_state->setErrorByName('photos', $this->t('Please enter at least one photo URL.'));
-    }
-    else {
-      foreach ($photo_urls as $url) {
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-          $form_state->setErrorByName('photos',$this->t('Each photo must be a valid URL. Invalid URL: @url', ['@url' => $url,]));
-        
-          break;
+    if (is_array($existing_photos)) {
+
+      foreach ($existing_photos as $photo) {
+
+        if (!empty($photo['url']) && empty($photo['remove'])) {
+          $remaining_existing_photos[] = $photo['url'];
         }
       }
     }
 
-    // Quantity validation.
-    if (!is_numeric($quantity) || (int) $quantity != $quantity) {
-      $form_state->setErrorByName('quantity', $this->t('Quantity must be a whole number.'));
-    }
-    elseif ($quantity < 0) {
-      $form_state->setErrorByName('quantity', $this->t('Quantity cannot be negative.')
+    if (
+      empty($remaining_existing_photos)
+      && empty($new_photos)
+    ) {
+      $form_state->setErrorByName('new_photos', $this->t('Please keep at least one photo or add a new photo.')
       );
     }
 
-    // Amount validation.
-    if (!is_numeric($amount)) {
-      $form_state->setErrorByName( 'amount', $this->t('Amount must be a valid number.'));
+    /*
+     * Quantity validation.
+     */
+    if (!is_numeric($quantity) || (int) $quantity != $quantity) {
+      $form_state->setErrorByName(
+        'quantity',
+        $this->t('Quantity must be a whole number.')
+      );
     }
-    elseif ($amount < 0) {
-      $form_state->setErrorByName( 'amount', $this->t('Amount cannot be negative.') );
+    elseif ($quantity < 0) {
+      $form_state->setErrorByName(
+        'quantity',
+        $this->t('Quantity cannot be negative.')
+      );
     }
 
-    // Offer validation.
+    /*
+     * Amount validation.
+     */
+    if (!is_numeric($amount)) {
+      $form_state->setErrorByName(
+        'amount',
+        $this->t('Amount must be a valid number.')
+      );
+    }
+    elseif ($amount < 0) {
+      $form_state->setErrorByName(
+        'amount',
+        $this->t('Amount cannot be negative.')
+      );
+    }
+
+    /*
+     * Offer validation.
+     */
     if (!is_numeric($offer)) {
-      $form_state->setErrorByName( 'offer', $this->t('Offer must be a valid number.'));
+      $form_state->setErrorByName(
+        'offer',
+        $this->t('Offer must be a valid number.')
+      );
     }
     elseif ($offer < 0 || $offer > 100) {
-      $form_state->setErrorByName('offer', $this->t('Offer must be between 0 and 100.') );
+      $form_state->setErrorByName(
+        'offer',
+        $this->t('Offer must be between 0 and 100.')
+      );
     }
   }
 
-  /**
-   * Submit edit form.
-   */
-  public function submitForm(array &$form,FormStateInterface $form_state) {
 
-    $photos = preg_split('/\r\n|\r|\n/', trim($form_state->getValue('photos')));
+  public function submitForm( array &$form, FormStateInterface $form_state ) {
 
-    $photos = array_values(array_filter( array_map('trim', $photos) ));
+  
+    $existing_photos = $form_state->getValue('existing_photos', []);
+
+    $photos = [];
+
+    if (is_array($existing_photos)) {
+
+      foreach ($existing_photos as $photo) {
+
+        /*
+         * Keep photo only if the admin did NOT
+         * select the remove checkbox.
+         */
+        if (
+          !empty($photo['url'])
+          && empty($photo['remove'])
+        ) {
+          $photos[] = $photo['url'];
+        }
+      }
+    }
+
+    $new_photos = $form_state->getValue('new_photos', []);
+
+    if (is_array($new_photos)) {
+
+      foreach ($new_photos as $fid) {
+
+        $file = File::load($fid);
+
+        if (!$file) {
+          continue;
+        }
+
+        try {
+
+          /*
+           * Get Drupal temporary file path.
+           */
+          $file_path = $file->getFileUri();
+
+          $real_path = \Drupal::service('file_system')
+            ->realpath($file_path);
+
+          /*
+           * Upload image to Cloudinary.
+           */
+          $cloudinary_url = $this->cloudinaryService
+            ->uploadImage($real_path);
+
+          /*
+           * Add Cloudinary URL to existing photos.
+           */
+          if (!empty($cloudinary_url)) {
+            $photos[] = $cloudinary_url;
+          }
+
+        }
+        catch (\Exception $e) {
+
+          \Drupal::logger('user_crud')->error(
+            'Cloudinary image upload failed: @message',
+            [
+              '@message' => $e->getMessage(),
+            ]
+          );
+
+          $this->messenger()->addError(
+            $this->t(
+              'Failed to upload one of the new images.'
+            )
+          );
+
+          return;
+        }
+      }
+    }
 
     $data = [
       'title' => trim($form_state->getValue('title')),
@@ -226,14 +399,13 @@ class CartAdminEditForm extends FormBase {
       'amount' => (float) $form_state->getValue('amount'),
       'offer' => (float) $form_state->getValue('offer'),
     ];
-    
-    $this->cartService->updateProduct(
-      $this->product->id,
-      $data
-    );
 
-    $this->messenger()->addStatus(
-      $this->t('Cart product has been updated successfully.')
+    /*
+     * Update product.
+     */
+    $this->cartService->updateProduct($this->product->id, $data );
+
+    $this->messenger()->addStatus( $this->t('Cart product has been updated successfully.' )
     );
 
     $form_state->setRedirect('user_crud.cart_list');
