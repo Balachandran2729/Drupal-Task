@@ -44,6 +44,15 @@ class CartAdminEditForm extends FormBase {
       throw new NotFoundHttpException();
     }
 
+     $categories = $this->cartService->getActiveCategories();
+
+    $category_options = [];
+
+    foreach ($categories as $category) {
+      $category_options[$category] = $category;
+    }
+
+
     $form['title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Title'),
@@ -59,10 +68,34 @@ class CartAdminEditForm extends FormBase {
     ];
 
     $form['category'] = [
-      '#type' => 'textfield',
+      '#type' => 'select',
       '#title' => $this->t('Category'),
+      '#options' => $category_options,
       '#default_value' => $this->product->category,
+      '#empty_option' => $this->t('- Select Category -'),
       '#required' => TRUE,
+    ];
+
+    $form['add_category'] = [
+      '#type' => 'link',
+      '#title' => $this->t('+ Add Category'),
+      '#url' => \Drupal\Core\Url::fromRoute(
+        'user_crud.category_add',
+        [],
+        [
+          'query' => [
+            'destination' => \Drupal\Core\Url::fromRoute(
+              'user_crud.cart_edit',
+              ['id' => $this->product->id]
+            )->toString(),
+          ],
+        ]
+      ),
+      '#attributes' => [
+        'class' => [
+          'button',
+        ],
+      ],
     ];
 
     $form['manufacturer'] = [

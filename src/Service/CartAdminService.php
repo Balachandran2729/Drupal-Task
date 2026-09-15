@@ -200,4 +200,74 @@ class CartAdminService {
     }
   }
 
+  public function getActiveCategories() {
+    try {
+      return $this->database
+        ->select('user_crud_categories', 'c')
+        ->fields('c', ['name'])
+        ->condition('status', 1)
+        ->orderBy('name', 'ASC')
+        ->execute()
+        ->fetchCol();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to fetch active categories: @message',
+        [
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      return [];
+    }
+  }
+
+  /**
+   * Add a new category.
+   */
+  public function addCategory($name) {
+    try {
+      $timestamp = time();
+
+      return $this->database
+        ->insert('user_crud_categories')
+        ->fields([
+          'name' => $name,
+          'status' => 1,
+          'created_at' => $timestamp,
+          'updated_at' => $timestamp,
+        ])
+        ->execute();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error('Failed to add category: @message',['@message' => $e->getMessage(), ]);
+
+      throw $e;
+    }
+  }
+
+  /**
+   * Check whether a category already exists.
+  */
+  public function categoryExists($name) {
+    try {
+      return (bool) $this->database
+        ->select('user_crud_categories', 'c')
+        ->condition('name', $name)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('user_crud')->error(
+        'Failed to check category: @message',
+        [
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      return FALSE;
+    }
+  }
+
 }

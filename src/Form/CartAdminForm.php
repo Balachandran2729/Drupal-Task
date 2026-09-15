@@ -27,12 +27,21 @@ class CartAdminForm extends FormBase {
     );
   }
 
-
-  // public function getFormId() {
-  //   return 'cart_admin_form';
-  // }
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormId() {
+    return 'cart_admin_form';
+  }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
+
+    $categories = $this->cartService->getActiveCategories();
+    $category_options = [];
+
+    foreach ($categories as $category) {
+      $category_options[$category] = $category;
+    }
 
     $form['title'] = [
       '#type' => 'textfield',
@@ -59,9 +68,24 @@ class CartAdminForm extends FormBase {
     ];
 
     $form['category'] = [
-      '#type' => 'textfield',
+      '#type' => 'select',
       '#title' => $this->t('Category'),
+      '#options' => $category_options,
+      '#empty_option' => $this->t('- Select Category -'),
       '#required' => TRUE,
+    ];
+
+    $form['add_category'] = [
+      '#type' => 'link',
+      '#title' => $this->t('+ Add Category'),
+      '#url' => \Drupal\Core\Url::fromRoute(
+        'user_crud.category_add'
+      ),
+      '#attributes' => [
+        'class' => [
+          'button',
+        ],
+      ],
     ];
 
     $form['manufacturer'] = [

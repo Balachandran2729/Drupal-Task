@@ -165,6 +165,48 @@ function user_crud_schema() {
     'primary key' => ['id'],
   ];
 
+  $schema['user_crud_categories'] = [
+
+    'description' => 'Stores product categories managed by admin.',
+
+    'fields' => [
+
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+
+      'status' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+
+      'created_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+      'updated_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+
+    ],
+
+    'primary key' => ['id'],
+  ];
+
   return $schema;
 }
 
@@ -196,4 +238,18 @@ function user_crud_update_10002() {
   }
 
   return t('Ensured user_crud_products table exists.');
+}
+
+function user_crud_update_10003() {
+
+  if (!\Drupal::database()->schema()->tableExists('user_crud_categories')) {
+
+    \Drupal::database()->schema()->createTable(
+      'user_crud_categories',
+      user_crud_schema()['user_crud_categories']
+    );
+
+  }
+
+  return t('Ensured user_crud_categories table exists.');
 }

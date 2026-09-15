@@ -288,3 +288,13 @@ user_crud.cart_detail:
     id: '\d+'
   options:
     _admin_route: TRUE
+
+# Catagery 
+
+user_crud.category_add:
+  path: '/admin/cart/category/add'
+  defaults:
+    _form: '\Drupal\user_crud\Form\CategoryAdminForm'
+    _title: 'Add Category'
+  requirements:
+    _permission: 'manage user crud'
