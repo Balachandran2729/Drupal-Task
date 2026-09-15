@@ -154,7 +154,7 @@ class CartAdminForm extends FormBase {
 
     // Quantity validation.
     if (!is_numeric($quantity) || (int) $quantity != $quantity) {
-      $form_state->setErrorByName('quantity', $this->t('Quantity must be a whole number.') );
+      $form_state->setErrorByName('quantity', $this->t('Quantity must be a whole number., Example 1 , 2, 3 , ...') );
     }
     elseif ($quantity < 0) {
       $form_state->setErrorByName('quantity', $this->t('Quantity cannot be negative.'));

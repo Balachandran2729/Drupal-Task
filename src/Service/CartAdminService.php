@@ -161,10 +161,7 @@ class CartAdminService {
         ->condition('id', $id)
         ->execute();
     }
-    catch (\RuntimeException $e) {
-
-      throw $e;
-    }
+    
     catch (\Exception $e) {
       \Drupal::logger('user_crud')->error(
         'Failed to update product @id: @message',
