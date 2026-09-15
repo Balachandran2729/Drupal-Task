@@ -509,5 +509,52 @@ class UserCrudAPPsService {
         }
     }
 
+        // Get purchase history for a user.
+    public function getPurchaseHistory($uid) {
+        try {
+            $query = \Drupal::database()->select('user_crud_purchase', 'p');
+            $query->fields('p');
+            $query->condition('p.uid', (int) $uid);
+            $query->orderBy('p.id', 'DESC');
+
+            $rows = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+
+            $purchases = [];
+            $totalAmount = 0.0;
+
+            foreach ($rows as $item) {
+                $lineAmount = (float) ($item['total_amount'] ?? 0);
+
+                $purchases[] = [
+                    'id' => (int) ($item['id'] ?? 0),
+                    'product_id' => (int) ($item['product_id'] ?? 0),
+                    'title' => $item['title'] ?? '',
+                    'image' => $item['image'] ?? '',
+                    'count' => (int) ($item['count'] ?? 0),
+                    'offer' => (float) ($item['offer'] ?? 0),
+                    'offer_price' => (float) ($item['offer_price'] ?? 0),
+                    'amount' => (float) ($item['amount'] ?? 0),
+                    'total_amount' => $lineAmount,
+                    'purchased_at' => (int) ($item['created'] ?? 0),
+                ];
+
+                $totalAmount += $lineAmount;
+            }
+
+            return [
+                'purchases' => $purchases,
+                'total' => count($purchases),
+                'total_amount' => round($totalAmount, 2),
+            ];
+        }
+        catch (\Throwable $exception) {
+            \Drupal::logger('user_crud')->error('getPurchaseHistory failed: @message', [
+                '@message' => $exception->getMessage(),
+            ]);
+
+            throw new \RuntimeException('Unable to load purchase history from storage.', 0, $exception);
+        }
+    }
+
 
 }

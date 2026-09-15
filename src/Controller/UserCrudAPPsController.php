@@ -360,4 +360,35 @@ class UserCrudAPPsController extends ControllerBase {
             return new JsonResponse(['error' => 'Something went wrong while processing the purchase.'], 500);
         }
     }
+
+    public function getPurchaseHistory(Request $request) {
+        \Drupal::logger('user_crud')->info('getPurchaseHistory called.');
+
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'getPurchaseHistory');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
+        }
+
+        $validatedUser = $this->appValidationService->validateAuthenticatedUser($request, 'getPurchaseHistory');
+        if ($validatedUser instanceof JsonResponse) {
+            return $validatedUser;
+        }
+
+        $uid = $validatedUser['uid'];
+
+        try {
+            $history = $this->userCrudAPPsService->getPurchaseHistory($uid);
+
+            \Drupal::logger('user_crud')->info('getPurchaseHistory completed successfully.');
+
+            return new JsonResponse($history, 200);
+
+        } catch (\Throwable $e) {
+            \Drupal::logger('user_crud')->error(
+                'getPurchaseHistory failed for user @uid: @message', ['@uid' => $uid, '@message' => $e->getMessage()]
+            );
+
+            return new JsonResponse(['error' => 'Something went wrong while getting purchase history.'], 500);
+        }
+    }
 }

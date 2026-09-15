@@ -308,3 +308,11 @@ user_crud.purchase_app_data:
   methods: [POST]
   requirements:
     _access: 'TRUE'
+
+user_crud.get_purchase_history:
+  path: '/api/purchase-history'
+  defaults:
+    _controller: '\Drupal\user_crud\Controller\UserCrudAPPsController::getPurchaseHistory'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
