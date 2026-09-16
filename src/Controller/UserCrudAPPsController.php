@@ -362,20 +362,10 @@ class UserCrudAPPsController extends ControllerBase {
 
         $uid = $validatedUser['uid'];
 
-        $requestData = json_decode($request->getContent(), TRUE) ?: [];
-        $items = $requestData['items'] ?? [];
-
-        \Drupal::logger('user_crud')->info('purchaseAppData: Request data received: @request', [
-            '@request' => json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-        ]);
-
-        if (!is_array($items) || empty($items)) {
-            \Drupal::logger('user_crud')->warning('purchaseAppData failed: No items provided.');
-            return new JsonResponse(['error' => 'Please provide at least one item to purchase.'], 400);
-        }
+        \Drupal::logger('user_crud')->info('purchaseAppData: Processing purchase for user @uid.', ['@uid' => $uid]);
 
         try {
-            $result = $this->userCrudAPPsService->createPurchase($uid, $items);
+            $result = $this->userCrudAPPsService->createPurchase($uid);
 
             if (empty($result['success'])) {
                 return new JsonResponse([

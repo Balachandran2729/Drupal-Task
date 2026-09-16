@@ -437,8 +437,28 @@ class UserCrudAPPsService {
     }
 
 
-    // Purchase: validates, then atomically decrements stock and records the order.
-    public function createPurchase($uid, array $cartItems) {
+    public function createPurchase($uid) {
+
+        $cartRows = \Drupal::database()->select('user_crud_cart', 'c')
+            ->fields('c')
+            ->condition('c.uid', (int) $uid)
+            ->execute()
+            ->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($cartRows)) {
+            return [
+                'success' => FALSE,
+                'errors' => [['error' => 'Your cart is empty.']],
+            ];
+        }
+
+        $cartItems = [];
+        foreach ($cartRows as $row) {
+            $cartItems[] = [
+                'id' => (int) ($row['product_id'] ?? 0),
+                'count' => (int) ($row['count'] ?? 0),
+            ];
+        }
 
         $errors = $this->validateCartAvailability($cartItems);
 
@@ -452,8 +472,8 @@ class UserCrudAPPsService {
 
         try {
             foreach ($cartItems as $cartItem) {
-                $id = (int) ($cartItem['id'] ?? 0);
-                $count = (int) ($cartItem['count'] ?? 0);
+                $id = $cartItem['id'];
+                $count = $cartItem['count'];
 
                 $productData = $this->getValidatedProductData($id);
                 $offer = (float) ($productData['offer'] ?? 0);
@@ -461,7 +481,6 @@ class UserCrudAPPsService {
                 $offerPrice = (float) ($productData['offer_price'] ?? 0);
                 $now = time();
 
-            
                 $updated = $db->update('user_crud_products')
                     ->expression('available', 'available - :count', [':count' => $count])
                     ->expression('sales', 'sales + :count', [':count' => $count])
@@ -478,12 +497,17 @@ class UserCrudAPPsService {
 
                 $totalAmount = round($offerPrice * $count, 2);
 
+                 $image = json_decode((string) ($productData['photos'] ?? ''), TRUE);
+                    if (!is_array($image)) {
+                        $image = [];
+                    }
+
                 $db->insert('user_crud_purchase')
                     ->fields([
                         'uid' => (int) $uid,
                         'product_id' => $id,
-                        'title' => $productData['title'] ?? ($productData['title'] ?? ''),
-                        'image' => $cartItem['image'] ?? ($productData['photos'] ?? ''),
+                        'title' => $productData['title'] ?? '',
+                        'image' =>  $image,
                         'count' => $count,
                         'offer' => $offer,
                         'offer_price' => $offerPrice,
@@ -495,14 +519,15 @@ class UserCrudAPPsService {
                     ->execute();
 
                 // Purchased items come out of the cart.
-                // $db->delete('user_crud_cart')
-                //     ->condition('uid', (int) $uid)
-                //     ->condition('product_id', $id)
-                //     ->execute();
+                $db->delete('user_crud_cart')
+                    ->condition('uid', (int) $uid)
+                    ->condition('product_id', $id)
+                    ->execute();
 
                 $purchased[] = [
                     'id' => $id,
                     'title' => $productData['title'] ?? '',
+                    'image' => $productData['photos'] ?? '',
                     'count' => $count,
                     'offer' => $offer,
                     'offer_price' => $offerPrice,
