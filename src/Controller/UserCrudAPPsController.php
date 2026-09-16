@@ -111,8 +111,6 @@ class UserCrudAPPsController extends ControllerBase {
 
         $requestData = json_decode($request->getContent(), TRUE) ?: [];
         $id = $requestData['id'] ?? '';
-        $title= $requestData['title'] ?? '';
-        $image = $requestData['image'] ?? '';
         $count = $requestData['count'] ?? '';
 
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -126,17 +124,23 @@ class UserCrudAPPsController extends ControllerBase {
 
         try {
 
-            $this->userCrudAPPsService->createCartAppData($uid,$id,$title,$image,$count);
+            $this->userCrudAPPsService->createCartAppData($uid,$id,$count);
 
             \Drupal::logger('user_crud')->info('createCartAppData completed successfully.');
 
             return new JsonResponse(['message' => 'Product added to cart successfully.',], 201);
 
+        } catch (\RuntimeException $e) {
+
+            \Drupal::logger('user_crud')->error('createCartAppData failed: @message', ['@message' => $e->getMessage(),]);
+
+            return new JsonResponse(['error' => $e->getMessage(),], 400);
+
         } catch (\Throwable $e) {
 
-                \Drupal::logger('user_crud')->error('createCartAppData failed: @message',['@message' => $e->getMessage(),]);
+            \Drupal::logger('user_crud')->error('createCartAppData failed: @message', [ '@message' => $e->getMessage(),]);
 
-                return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.',], 500);
+            return new JsonResponse(['error' => 'Something went wrong while adding the product to cart.', ], 500);
         }
     }
 

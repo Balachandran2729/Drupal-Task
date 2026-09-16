@@ -77,7 +77,7 @@ class UserCrudAPPsService {
 
 
     // create a cart 
-    public function createCartAppData($uid, $id, $title, $image, $count) {
+    public function createCartAppData($uid, $id, $count) {
 
         $productData = $this->getValidatedProductData($id);
 
@@ -91,6 +91,13 @@ class UserCrudAPPsService {
         $offer = (float) ($productData['offer'] ?? 0);
         $amount = (float) ($productData['amount'] ?? 0);
         $offerPrice = (float) ($productData['offer_price'] ?? 0);
+        $title = (string) ($productData['title'] ?? '');
+        $image = json_decode((string) ($productData['photos'] ?? ''), TRUE);
+
+        if (!is_array($image)) {
+            $image = [];
+        }
+
 
         try {
             $db = \Drupal::database();
@@ -113,8 +120,8 @@ class UserCrudAPPsService {
                 ->fields([
                     'uid' => (int) $uid,
                     'product_id' => (int) $id,
-                    'title' => $title,
-                    'image' => $image,
+                    'title' => '',
+                    'image' => '',
                     'count' => $itemCount,
                     'offer' => $offer,
                     'offer_price' => $offerPrice,
@@ -164,6 +171,8 @@ class UserCrudAPPsService {
             foreach ($rows as $item) {
                 $productId = (int) ($item['product_id'] ?? 0);
                 $count = (int) ($item['count'] ?? 1);
+                $title = '';
+                $image = [];
 
                 $offer = (float) ($item['offer'] ?? 0);
                 $amount = (float) ($item['amount'] ?? 0);
@@ -171,6 +180,11 @@ class UserCrudAPPsService {
 
                 try {
                     $productData = $this->getValidatedProductData($productId);
+                    $title = (string) ($productData['title'] ?? '');
+                    $image = json_decode((string) ($productData['photos'] ?? ''), TRUE);
+                    if (!is_array($image)) {
+                        $image = [];
+                    }
                     $freshOffer = (float) ($productData['offer'] ?? 0);
                     $freshAmount = (float) ($productData['amount'] ?? 0);
                     $freshOfferPrice = (float) ($productData['offer_price'] ?? 0);
@@ -202,8 +216,8 @@ class UserCrudAPPsService {
 
                 $products[] = [
                     'id' => $productId,
-                    'title' => $item['title'] ?? '',
-                    'image' => $item['image'] ?? '',
+                    'title' => $title,
+                    'image' => $image,
                     'count' => $count,
                     'offer' => $offer,
                     'offer_price' => $offerPrice,
