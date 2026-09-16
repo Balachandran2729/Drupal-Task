@@ -258,8 +258,8 @@ class UserCrudRestAPIController extends ControllerBase {
 
     
 
-    public function restAPIcreate(Request $request)
-    {
+    public function restAPIcreate(Request $request) {
+        
         $data = json_decode($request->getContent(), true);
 
         $token = $this->tokenService->generateToken();
@@ -283,15 +283,57 @@ class UserCrudRestAPIController extends ControllerBase {
         $password = $data['password'] ?? '';
         $phone_number = trim($data['phone_number'] ?? '');
 
-        // Validation.
+        // Required field validation.
         if ($username === '' || $email === '' || $password === '') {
             return new JsonResponse([
                 'error' => 'Name, email and password are required.',
             ], 400);
         }
 
-        return $this->userCrudService->restAPIcreateUser( $username, $email, $password,$phone_number );
+        // Username validation.
+        if (strlen($username) < 3) {
+            return new JsonResponse([
+                'error' => 'Username must be at least 3 characters long.',
+            ], 400);
+        }
 
+        // Check whether username already exists.
+        if (user_load_by_name($username)) {
+            return new JsonResponse([
+                'error' => 'This username is already taken.',
+            ], 400);
+        }
+
+        // Check whether email already exists.
+        if (user_load_by_mail($email)) {
+            return new JsonResponse([
+                'error' => 'This email address is already registered.',
+            ], 400);
+        }
+
+        // Password validation.
+        if (!preg_match(
+            '/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/',
+            $password
+        )) {
+            return new JsonResponse([
+                'error' => 'Password must be at least 8 characters and contain one uppercase letter, one number, and one special character.',
+            ], 400);
+        }
+
+        // Phone validation.
+        if (!preg_match('/^\+65[0-9]{8}$/', $phone_number)) {
+            return new JsonResponse([
+                'error' => 'Phone number must start with +65 and contain 8 digits.',
+            ], 400);
+        }
+
+        return $this->userCrudService->restAPIcreateUser(
+            $username,
+            $email,
+            $password,
+            $phone_number
+        );
     }
     
 }

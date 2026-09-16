@@ -57,6 +57,40 @@ class UserCrudAPPsController extends ControllerBase {
         return new JsonResponse($appData);
     }
 
+    public function getProductById($id, Request $request): JsonResponse {
+        \Drupal::logger('user_crud')->info('getProductById called for id @id.', ['@id' => $id,]);
+
+        $validationResponse = $this->tokenService->validateAccessToken($request, $this->jwtAuthService, 'getProductById');
+        if ($validationResponse instanceof JsonResponse) {
+            return $validationResponse;
+        }
+
+        $validationError = $this->appValidationService->validateCartRequestFields($id);
+        if ($validationError instanceof JsonResponse) {
+            return $validationError;
+        }
+
+        try {
+            $product = $this->userCrudAPPsService->getValidatedProductData((int) $id);
+
+            return new JsonResponse(['product' => $product], 200);
+        }
+        catch (\RuntimeException $exception) {
+            if ($exception->getCode() === 404) {
+                return new JsonResponse(['error' => 'Product not found.'], 404);
+            }
+
+            \Drupal::logger('user_crud')->error('getProductById failed for id @id: @message', [
+                '@id' => $id,
+                '@message' => $exception->getMessage(),
+            ]);
+
+            return new JsonResponse(['error' => 'Something went wrong while getting the product.'], 500);
+        }
+    }
+
+    
+
     //Cart Section
 
     public function createCartAppData (Request $request) {

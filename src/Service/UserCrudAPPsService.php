@@ -41,8 +41,8 @@ class UserCrudAPPsService {
     }
 }
 
-    // Validate a Prodect for create and update cart function like prodect exites or not , stock like that.
-    private function getValidatedProductData($id) {
+    // Validate a product and return its current database data.
+    public function getValidatedProductData($id) {
         try {
             $productData = $this->database
                 ->select('user_crud_products', 'c')
@@ -52,7 +52,7 @@ class UserCrudAPPsService {
                 ->fetchAssoc();
 
             if (!$productData) {
-                throw new \RuntimeException('Product not found in database.');
+                throw new \RuntimeException('Product not found in database.', 404);
             }
 
             return $productData;
@@ -67,7 +67,11 @@ class UserCrudAPPsService {
                 ]
             );
 
-            throw new \RuntimeException( 'Unable to validate product in database.',0, $exception);
+            throw new \RuntimeException(
+                'Unable to validate product in database.',
+                $exception->getCode() === 404 ? 404 : 500,
+                $exception
+            );
         }
     }
 
