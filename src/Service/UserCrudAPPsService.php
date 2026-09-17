@@ -85,7 +85,7 @@ class UserCrudAPPsService {
         $itemCount = (int) $count;
 
         if ($itemCount > $available) {
-            throw new \RuntimeException('Requested quantity exceeds available stock.');
+            throw new \RuntimeException('Requested quantity Not available , Please Reduce a quantity.');
         }
 
         $offer = (float) ($productData['offer'] ?? 0);
@@ -507,7 +507,7 @@ class UserCrudAPPsService {
                         'uid' => (int) $uid,
                         'product_id' => $id,
                         'title' => $productData['title'] ?? '',
-                        'image' =>  $image,
+                        'image' => json_encode($image),
                         'count' => $count,
                         'offer' => $offer,
                         'offer_price' => $offerPrice,
@@ -527,7 +527,7 @@ class UserCrudAPPsService {
                 $purchased[] = [
                     'id' => $id,
                     'title' => $productData['title'] ?? '',
-                    'image' => $productData['photos'] ?? '',
+                    'image' => $image,
                     'count' => $count,
                     'offer' => $offer,
                     'offer_price' => $offerPrice,
@@ -572,7 +572,7 @@ class UserCrudAPPsService {
                     'id' => (int) ($item['id'] ?? 0),
                     'product_id' => (int) ($item['product_id'] ?? 0),
                     'title' => $item['title'] ?? '',
-                    'image' => $item['image'] ?? '',
+                    'image' => json_decode((string) ($item['image'] ?? ''), TRUE) ?: [],
                     'count' => (int) ($item['count'] ?? 0),
                     'offer' => (float) ($item['offer'] ?? 0),
                     'offer_price' => (float) ($item['offer_price'] ?? 0),

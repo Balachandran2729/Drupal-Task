@@ -198,12 +198,12 @@ class UserCrudAPPsController extends ControllerBase {
         $requestDataJson = json_encode($requestData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         \Drupal::logger('user_crud')->info('updateCartAppData: Request data received: ',$requestData);
 
-        $validationError = $this->appValidationService->validateCartRequestFields($id, $count);
+        // $validationError = $this->appValidationService->validateCartRequestFields($id, $count);
         
-        if ($validationError instanceof JsonResponse) {
-            \Drupal::logger('user_crud')->error('updateCartAppData failed: Count value or ID is missing or invalid.');
-            return $validationError;
-        }
+        // if ($validationError instanceof JsonResponse) {
+        //     \Drupal::logger('user_crud')->error('updateCartAppData failed: Count value or ID is missing or invalid.');
+        //     return $validationError;
+        // }
 
         \Drupal::logger('user_crud')->info('updateCartAppData: Updating cart item with count @count for user @uid.', [
             '@count' => $count,
@@ -211,6 +211,18 @@ class UserCrudAPPsController extends ControllerBase {
         ]);
 
         try {
+            if ((int) $count === 0) {
+                $deleted = $this->userCrudAPPsService->deleteCartAppData($uid, $id);
+
+                if (!$deleted) {
+                    return new JsonResponse(['error' => 'Cart product not found.'], 404);
+                }
+
+                \Drupal::logger('user_crud')->info('updateCartAppData deleted cart item for id @id because count is zero.', ['@id' => $id]);
+
+                return new JsonResponse(['message' => 'Cart product deleted successfully.'], 200);
+            }
+
             $cartItem = $this->userCrudAPPsService->updateCartAppData( $uid,$id,$count );
 
             \Drupal::logger('user_crud')->info( 'updateCartAppData completed successfully for id @id.',['@id' => $id]);

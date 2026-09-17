@@ -12,17 +12,21 @@ use Drupal\user_crud\Service\UserCrudVerifyTokens;
 use Drupal\user_crud\Service\UserCrudService;
 use Drupal\user_crud\Service\JwtAuthService;
 
+use Drupal\user_crud\Service\UserCrudAppValidationService;
+
 
 class UserCrudRestAPIController extends ControllerBase {
 
     private UserCrudService $userCrudService;
      private UserCrudVerifyTokens $tokenService;
     private JwtAuthService $jwtAuthService;
+    private UserCrudAppValidationService $appValidationService;
 
     public function __construct(UserCrudService $userCrudService, UserCrudVerifyTokens $tokenService, JwtAuthService $jwtAuthService) {
         $this->userCrudService = $userCrudService;
         $this->tokenService = $tokenService;
         $this->jwtAuthService = $jwtAuthService;
+        $this->appValidationService = $appValidationService;
     }
 
     public static function create(ContainerInterface $container) {
@@ -30,6 +34,7 @@ class UserCrudRestAPIController extends ControllerBase {
             $container->get('user_crud.service'),
             $container->get('user_crud.verify_tokens'),
             $container->get('user_crud.jwt_auth'),
+            $container->get('user_crud.app_validation'),
         );
     }
 
@@ -259,8 +264,8 @@ class UserCrudRestAPIController extends ControllerBase {
     
 
     public function restAPIcreate(Request $request) {
-        
-        $data = json_decode($request->getContent(), true);
+
+        $data = json_decode($request->getContent(), TRUE);
 
         $token = $this->tokenService->generateToken();
 
@@ -272,61 +277,16 @@ class UserCrudRestAPIController extends ControllerBase {
             ], 401);
         }
 
-        if (!is_array($data)) {
-            return new JsonResponse([
-                'error' => 'Invalid JSON body.',
-            ], 400);
+        $validationError = $this->appValidationService->validateCreateUserFields($data);
+
+        if ($validationError instanceof JsonResponse) {
+            return $validationError;
         }
 
-        $username = trim($data['name'] ?? '');
-        $email = trim($data['email'] ?? '');
-        $password = $data['password'] ?? '';
-        $phone_number = trim($data['phone_number'] ?? '');
-
-        // Required field validation.
-        if ($username === '' || $email === '' || $password === '') {
-            return new JsonResponse([
-                'error' => 'Name, email and password are required.',
-            ], 400);
-        }
-
-        // Username validation.
-        if (strlen($username) < 3) {
-            return new JsonResponse([
-                'error' => 'Username must be at least 3 characters long.',
-            ], 400);
-        }
-
-        // Check whether username already exists.
-        if (user_load_by_name($username)) {
-            return new JsonResponse([
-                'error' => 'This username is already taken.',
-            ], 400);
-        }
-
-        // Check whether email already exists.
-        if (user_load_by_mail($email)) {
-            return new JsonResponse([
-                'error' => 'This email address is already registered.',
-            ], 400);
-        }
-
-        // Password validation.
-        if (!preg_match(
-            '/^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{8,}$/',
-            $password
-        )) {
-            return new JsonResponse([
-                'error' => 'Password must be at least 8 characters and contain one uppercase letter, one number, and one special character.',
-            ], 400);
-        }
-
-        // Phone validation.
-        if (!preg_match('/^\+65[0-9]{8}$/', $phone_number)) {
-            return new JsonResponse([
-                'error' => 'Phone number must start with +65 and contain 8 digits.',
-            ], 400);
-        }
+        $username = trim($data['name']);
+        $email = trim($data['email']);
+        $password = $data['password'];
+        $phone_number = trim($data['phone_number']);
 
         return $this->userCrudService->restAPIcreateUser(
             $username,
