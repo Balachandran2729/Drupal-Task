@@ -22,7 +22,7 @@ class UserCrudRestAPIController extends ControllerBase {
     private JwtAuthService $jwtAuthService;
     private UserCrudAppValidationService $appValidationService;
 
-    public function __construct(UserCrudService $userCrudService, UserCrudVerifyTokens $tokenService, JwtAuthService $jwtAuthService) {
+    public function __construct(UserCrudService $userCrudService, UserCrudVerifyTokens $tokenService, JwtAuthService $jwtAuthService ,  UserCrudAppValidationService $appValidationService) {
         $this->userCrudService = $userCrudService;
         $this->tokenService = $tokenService;
         $this->jwtAuthService = $jwtAuthService;
