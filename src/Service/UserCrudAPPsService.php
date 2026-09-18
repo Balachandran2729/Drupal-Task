@@ -330,39 +330,49 @@ class UserCrudAPPsService {
 
     //store a Notification Token.
     public function registerDeviceToken($name, $id, $device, $token) {
+        $token = trim((string) $token);
+    
         try {
-            $storedTokens = \Drupal::state()->get('user_crud.notification_tokens', []);
-
-            $registeredToken = [
+            $now = time();
+            $existing = $this->database->select('user_crud_notification_tokens', 't')
+                ->fields('t', ['id'])
+                ->condition('t.token', $token)
+                ->range(0, 1)
+                ->execute()
+                ->fetchAssoc();
+    
+            $fields = [
                 'name' => trim((string) $name),
-                'id' => (string) $id,
+                'app_user_id' => (string) $id,
                 'device' => trim((string) $device),
-                'token' => trim((string) $token),
-                'registered_at' => time(),
+                'token' => $token,
+                'changed' => $now,
             ];
-
-            $updated = FALSE;
-            foreach ($storedTokens as $index => $item) {
-                if ((string) ($item['token'] ?? '') === (string) $registeredToken['token']) {
-                    $storedTokens[$index] = $registeredToken;
-                    $updated = TRUE;
-                    break;
-                }
+    
+            if ($existing) {
+                $this->database->update('user_crud_notification_tokens')
+                    ->fields($fields)
+                    ->condition('id', $existing['id'])
+                    ->execute();
+    
+                $fields['id'] = (int) $existing['id'];
             }
-
-            if (!$updated) {
-                $storedTokens[] = $registeredToken;
+            else {
+                $fields['created'] = $now;
+                $fields['id'] = (int) $this->database->insert('user_crud_notification_tokens')
+                    ->fields($fields)
+                    ->execute();
             }
-
-            \Drupal::state()->set('user_crud.notification_tokens', array_values($storedTokens));
-
-            return $registeredToken;
-        }
-        catch (\Throwable $exception) {
+    
+            $fields['registered_at'] = $now;
+    
+            return $fields;
+            
+        } catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('registerDeviceToken failed: @message', [
                 '@message' => $exception->getMessage(),
             ]);
-
+    
             throw new \RuntimeException('Unable to save device token data.', 0, $exception);
         }
     }
@@ -371,26 +381,34 @@ class UserCrudAPPsService {
     // Get the notofication token with user details , only Testing Perpose
     public function getRegisteredTokens() {
         try {
-            $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
-
-            foreach ($tokens as $index => $item) {
-                $tokens[$index]['name'] = trim((string) ($item['name'] ?? ''));
-                $tokens[$index]['id'] = (string) ($item['id'] ?? '');
-                $tokens[$index]['device'] = trim((string) ($item['device'] ?? ''));
-                $tokens[$index]['token'] = trim((string) ($item['token'] ?? ''));
+            $rows = $this->database->select('user_crud_notification_tokens', 't')
+                ->fields('t')
+                ->orderBy('t.id', 'DESC')
+                ->execute()
+                ->fetchAll(\PDO::FETCH_ASSOC);
+    
+            $tokens = [];
+    
+            foreach ($rows as $row) {
+                $tokens[] = [
+                    'id' => (string) $row['app_user_id'],
+                    'name' => (string) $row['name'],
+                    'device' => (string) $row['device'],
+                    'token' => (string) $row['token'],
+                    'registered_at' => (int) $row['created'],
+                ];
             }
-
-            return array_values($tokens);
+    
+            return $tokens;
         }
         catch (\Throwable $exception) {
             \Drupal::logger('user_crud')->error('getRegisteredTokens failed: @message', [
                 '@message' => $exception->getMessage(),
             ]);
-
+    
             throw new \RuntimeException('Unable to load registered tokens from storage.', 0, $exception);
         }
     }
-
 
     // Purchase validation and function
     public function validateCartAvailability(array $cartItems) {

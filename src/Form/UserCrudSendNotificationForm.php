@@ -19,6 +19,7 @@ class UserCrudSendNotificationForm extends FormBase {
   }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
+    
     $form['title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Title'),
@@ -31,7 +32,13 @@ class UserCrudSendNotificationForm extends FormBase {
       '#required' => TRUE,
     ];
 
-    $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
+    $tokens = \Drupal::database()->select('user_crud_notification_tokens', 't')
+      ->fields('t')
+      ->orderBy('t.id', 'DESC')
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    $tokens = array_values($tokens);
 
     $form['token_table'] = [
       '#type' => 'table',
@@ -42,7 +49,7 @@ class UserCrudSendNotificationForm extends FormBase {
     foreach ($tokens as $index => $tokenData) {
       $form['token_table'][$index] = [
         'name' => ['#plain_text' => $tokenData['name'] ?? ''],
-        'id' => ['#plain_text' => $tokenData['id'] ?? ''],
+        'id' => ['#plain_text' => $tokenData['app_user_id'] ?? ''],
         'device' => ['#plain_text' => $tokenData['device'] ?? ''],
         'token' => ['#plain_text' => $tokenData['token'] ?? ''],
         'action' => [
@@ -54,6 +61,7 @@ class UserCrudSendNotificationForm extends FormBase {
         ],
       ];
     }
+    $form_state->set('tokens', $tokens);
 
     $form['send_all'] = [
       '#type' => 'submit',
@@ -75,20 +83,18 @@ class UserCrudSendNotificationForm extends FormBase {
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
+
     $title = trim((string) $form_state->getValue('title'));
     $description = trim((string) $form_state->getValue('description'));
 
-    $tokens = \Drupal::state()->get('user_crud.notification_tokens', []);
-    $targetedToken = NULL;
+    $tokens = $form_state->get('tokens') ?? [];
+    $targetedIndex = NULL;
 
     $triggering_element = $form_state->getTriggeringElement();
     $triggering_name = $triggering_element['#name'] ?? '';
 
     if (strpos($triggering_name, 'send_single_') === 0) {
-      $index = (int) str_replace('send_single_', '', $triggering_name);
-      if (isset($tokens[$index])) {
-        $targetedToken = (string) ($tokens[$index]['token'] ?? '');
-      }
+      $targetedIndex = (int) str_replace('send_single_', '', $triggering_name);
     }
 
     if ($title === '' || $description === '') {
@@ -96,10 +102,8 @@ class UserCrudSendNotificationForm extends FormBase {
       return;
     }
 
-    if ($targetedToken) {
-      $recipients = [
-        $tokens[$index] ?? [],
-      ];
+    if ($targetedIndex !== NULL && isset($tokens[$targetedIndex])) {
+      $recipients = [$tokens[$targetedIndex]];
     }
     else {
       $recipients = $tokens;

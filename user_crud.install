@@ -326,6 +326,104 @@ function user_crud_schema() {
     ],
   ];
 
+  $schema['user_crud_notification_tokens'] = [
+    'description' => 'Stores registered push-notification device tokens (from registerToken).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'app_user_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The "id" value sent in the registerToken payload.',
+      ],
+      'device' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'token' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'changed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'token' => ['token'],
+    ],
+    'indexes' => [
+      'app_user_id' => ['app_user_id'],
+    ],
+  ];
+
+  $schema['user_crud_notifications'] = [
+    'description' => 'Stores every notification that was sent (or attempted).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'recipients' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON encoded array of the recipients this notification was sent to.',
+      ],
+      'sent_time' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'sent_time' => ['sent_time'],
+    ],
+  ];
+
+
   return $schema;
 }
 
@@ -374,32 +472,15 @@ function user_crud_update_10003() {
 }
 
 
-/**
- * Adds offer/offer_price/amount columns to the cart table.
- */
-function user_crud_update_10008() {
+function user_crud_update_10012() {
   $schema = \Drupal::database()->schema();
-  $fields = user_crud_schema()['user_crud_cart']['fields'];
+  $definitions = user_crud_schema();
 
-  foreach (['offer', 'offer_price', 'amount'] as $field) {
-    if (!$schema->fieldExists('user_crud_cart', $field)) {
-      $schema->addField('user_crud_cart', $field, $fields[$field]);
+  foreach (['user_crud_notification_tokens', 'user_crud_notifications'] as $table) {
+    if (!$schema->tableExists($table)) {
+      $schema->createTable($table, $definitions[$table]);
     }
   }
 
-  return t('Added offer, offer_price and amount fields to user_crud_cart.');
-}
-
-/**
- * Creates the purchase table on existing installs.
- */
-function user_crud_update_10007() {
-  if (!\Drupal::database()->schema()->tableExists('user_crud_purchase')) {
-    \Drupal::database()->schema()->createTable(
-      'user_crud_purchase',
-      user_crud_schema()['user_crud_purchase']
-    );
-  }
-
-  return t('Ensured user_crud_purchase table exists.');
+  return t('Created user_crud_notification_tokens and user_crud_notifications tables.');
 }

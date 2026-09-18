@@ -243,16 +243,25 @@ user_crud.notifications.send:
   options:
     _admin_route: TRUE
 
-user_crud.api_send_notification:
-  path: '/api/notifications/send'
+user_crud.notifications.detail:
+  path: '/admin/user-crud/notifications/{notification_id}'
   defaults:
-    _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::sendNotification'
-    _title: 'Send Notification'
-  methods: [POST]
+    _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::detail'
+    _title: 'Notification details'
   requirements:
-    _access: 'TRUE'
-  options:
-    _admin_route: FALSE
+    _permission: 'access administration pages'
+    notification_id: '\d+'
+
+# user_crud.api_send_notification:
+#   path: '/api/notifications/send'
+#   defaults:
+#     _controller: '\Drupal\user_crud\Controller\UserCrudNotificationController::sendNotification'
+#     _title: 'Send Notification'
+#   methods: [POST]
+#   requirements:
+#     _access: 'TRUE'
+#   options:
+#     _admin_route: FALSE
 
 # Prodect Routing
 
